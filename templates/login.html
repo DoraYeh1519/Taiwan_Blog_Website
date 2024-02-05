@@ -21,12 +21,12 @@
 <main class="mb-4">
   <div class="container">
     <div class="row">
-      <!-- TODO: add a flash message here for users registering twice -->
+
       {% if error %}
         <p class=error><strong>Error:</strong> {{ error }}
       {% endif %}
       <div class="col-lg-8 col-md-10 mx-auto">
-        <!--TODO: render login form here-->
+
         {{ render_form(form) }}
       </div>
     </div>

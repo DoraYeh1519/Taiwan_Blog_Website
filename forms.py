@@ -13,7 +13,7 @@ class CreatePostForm(FlaskForm):
     submit = SubmitField("Submit Post")
 
 
-# TODO: Create a RegisterForm to register new users
+
 class RegisterForm(FlaskForm):
     name = StringField("Your Name", validators=[DataRequired()])
     email = StringField("Your E-Mail Address", validators=[DataRequired()])
@@ -21,13 +21,13 @@ class RegisterForm(FlaskForm):
     img_url = FileField("Profile Picture", validators=[DataRequired()])
     submit = SubmitField("Get Started!")
 
-# TODO: Create a LoginForm to login existing users
+
 class LoginForm(FlaskForm):
     email = StringField("Your E-Mail Address", validators=[DataRequired()])
     password = PasswordField("Your Password", validators=[DataRequired()])
     submit = SubmitField("Get Started!")
 
-# TODO: Create a CommentForm so users can leave comments below posts
+
 
 class CommentForm(FlaskForm):
     comment = CKEditorField("Add a Comment", validators=[DataRequired()])
