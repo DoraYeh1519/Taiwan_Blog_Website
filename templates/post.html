@@ -1,0 +1,97 @@
+{% from "bootstrap5/form.html" import render_form %}
+{% include "header.html" %}
+
+<!-- Page Header -->
+<header class="masthead" style="background-image: url('{{post.img_url}}')">
+  <div class="container position-relative px-4 px-lg-5">
+    <div class="row gx-4 gx-lg-5 justify-content-center">
+      <div class="col-md-10 col-lg-8 col-xl-7">
+        <div class="post-heading">
+          <h1>{{ post.title }}</h1>
+          <h2 class="subheading">{{ post.subtitle }}</h2>
+          <span class="meta">Posted by <a href="#">{{ post.author }}</a> on {{ post.date }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Main Content -->
+<div class="container px-4 px-lg-5">
+  <div class="row gx-4 gx-lg-5">
+    <!-- Left Column (Post Content) -->
+    <div class="col-md-8">
+      <article>
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8 col-xl-7">
+              {{ post.body|safe }}
+
+              <!-- TODO: Only show Edit Post button if user id is 1 (admin user) -->
+              {% if current_user.id == 1 %}
+              <div class="d-flex justify-content-end mb-4">
+                <a class="btn btn-primary float-right" href="{{url_for('edit_post', post_id=post.id)}}">Edit Post</a>
+              </div>
+              {% endif %}
+
+              <!-- Comments Area -->
+              <!-- TODO: Add a CKEditor for commenting below -->
+              <div class="comment">
+                {{ render_form(form) }}
+                <!-- TODO: Show all the comments on a post -->
+
+                {% for comment in all_comments %}
+                  {% if comment.post_id == post.id: %}
+                  <ul class="commentList">
+                    <li>
+                      <div class="commenterImage">
+                        <img src="{{ url_for('static', filename='assets/img/profile_img/' + comment.img_url) }}" alt="Profile Image">
+                      </div>
+                      <div class="commentText">
+                        <span class="sub-text">{{comment.author}}</span>
+                        {% if current_user.id == 1: %}
+                        <a href="{{url_for('delete_comment', comment_id=comment.id, post_id=post.id) }}">✘</a>
+                        {% endif %}
+                        <p>{{comment.comment}}</p>
+                        <span class="date sub-text">{{comment.date}}</span>
+                      </div>
+                    </li>
+                  </ul>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Right Column (Recent Posts) -->
+    <div class="col-md-4">
+      <div class="position-sticky" style="top: 2rem;">
+        <div>
+          <h4 class="fst-italic">Recent posts</h4>
+          {% for other_post in all_posts %}
+            {% if other_post.id != post.id: %}
+              {% if other_post.id < 4: %}
+              <ul class="list-unstyled">
+                <li>
+                  <a class="d-flex flex-column flex-lg-row gap-3 align-items-start align-items-lg-center py-3 link-body-emphasis text-decoration-none border-top" href="{{ url_for('show_post', post_id=other_post.id) }}">
+                    <svg class="bd-placeholder-img" width="100%" height="96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="#777"></rect></svg>
+                    <div class="col-lg-8">
+                      <h6 class="mb-0">{{ other_post.title }}</h6>
+                      <small class="text-body-secondary">{{ other_post.date }}</small>
+                    </div>
+                  </a>
+                </li>
+              </ul>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include "footer.html" %}
