@@ -58,8 +58,8 @@
   {% if all_posts[0]: %}
   <div class="post-container p-4 p-md-5 mb-4 rounded text-body-emphasis bg-body-secondary" style="background-image: url('{{ all_posts[0].img_url }}'); height: 250px;">
     <div class="col-lg-6 px-0">
-      <h1 class="mb-0">{{ all_posts[0].title }}</h1>
-      <p class="lead my-3">{{ all_posts[0].subtitle }}</p>
+      <h1 class="mb-0 text-white">{{ all_posts[0].title }}</h1>
+      <p class="lead my-3 text-white">{{ all_posts[0].subtitle }}</p>
       <p class="lead mb-0"><a href="{{ url_for('show_post', post_id=all_posts[0].id) }}" class="text-white fw-bold">Continue reading...</a></p>
     </div>
   </div>
