@@ -1,4 +1,5 @@
 from datetime import date
+
 from flask import Flask, abort, render_template, redirect, url_for, flash, request
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
@@ -9,6 +10,8 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from sqlalchemy import desc
+import dropbox
+import setuptools
 # Import your forms from the forms.py
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 import os
@@ -17,6 +20,7 @@ import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
 app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER')
+dbx = dropbox.Dropbox(os.environ.get("DROPBOX_ACCESS_TOKEN"))
 ckeditor = CKEditor(app)
 Bootstrap5(app)
 
@@ -40,6 +44,28 @@ def admin_only(f):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
+
+def get_dropbox_image_files(folder_path):
+    image_links = []
+    try:
+        # List files in the specified folder
+        folder_list = dbx.files_list_folder(folder_path)
+        for entry in folder_list.entries:
+            if isinstance(entry, dropbox.files.FileMetadata) and entry.name.lower().endswith(
+                    ('.png', '.jpg', '.jpeg', '.gif')):
+                    list_links = dbx.sharing_list_shared_links(entry.path_lower).links
+                    if list_links:
+                        existing_link = list_links[0].url
+                        existing_link = existing_link.replace('dl=0', 'dl=1')  # Convert to direct download link
+                        image_links.append(existing_link)
+                    else:
+                        link = dbx.sharing_create_shared_link_with_settings(entry.path_lower)
+                        direct_link = link.url.replace('dl=0', 'dl=1')  # Convert to direct download link
+                        image_links.append(direct_link)
+    except dropbox.exceptions.ApiError as e:
+        print(f"Error listing folder: {e}")
+    return image_links
+
 
 # CONNECT TO DB
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI")
@@ -177,9 +203,14 @@ def show_post(post_id):
         result = db.session.execute(db.select(Comment).order_by(desc(Comment.id)))
         comments = result.scalars().all()
         return redirect(url_for("show_post", post_id=post_id, all_comments=comments, all_posts=posts))
+
     result = db.session.execute(db.select(Comment).order_by(desc(Comment.id)))
     comments = result.scalars().all()
-    return render_template("post.html", post=requested_post, form=form, all_comments=comments, all_posts=posts)
+    dropbox_folder_path = os.environ.get("DROPBOX_FOLDER_PATH")+str(post_id)
+    image_files = get_dropbox_image_files(dropbox_folder_path)
+
+    return render_template("post.html", post=requested_post, form=form,
+                           all_comments=comments, all_posts=posts, image_files=image_files)
 
 
 

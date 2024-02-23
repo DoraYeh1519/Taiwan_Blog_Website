@@ -34,6 +34,18 @@
               </div>
               {% endif %}
 
+              <!-- Display images fetched from Dropbox -->
+              <div class="image-gallery">
+                <h2>Image Gallery</h2>
+                <div class="row">
+                  {% for image in image_files %}
+                  <div class="col-md-4 mb-4">
+                    <img src="{{ image }}" class="img-fluid" alt="Image">
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+
               <!-- Comments Area -->
 
               <div class="comment">
