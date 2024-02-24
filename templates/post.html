@@ -88,13 +88,15 @@
               {% if other_post.id < 4: %}
               <ul class="list-unstyled">
                 <li>
-                  <a class="d-flex flex-column flex-lg-row gap-3 align-items-start align-items-lg-center py-3 link-body-emphasis text-decoration-none border-top" href="{{ url_for('show_post', post_id=other_post.id) }}">
-                    <svg class="bd-placeholder-img" width="100%" height="96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="#777"></rect></svg>
-                    <div class="col-lg-8">
-                      <h6 class="mb-0">{{ other_post.title }}</h6>
-                      <small class="text-body-secondary">{{ other_post.date }}</small>
-                    </div>
-                  </a>
+                    <a class="d-flex flex-column flex-lg-row gap-3 align-items-start align-items-lg-center py-3 link-body-emphasis text-decoration-none border-top"
+                        href="{{ url_for('show_post', post_id=other_post.id) }}">
+                        <img src="{{ other_post.img_url }}" alt="{{ other_post.title }}" class="bd-placeholder-img"
+                            width="100%" height="96">
+                        <div class="col-lg-8">
+                            <h6 class="mb-0">{{ other_post.title }}</h6>
+                            <small class="text-body-secondary">{{ other_post.date }}</small>
+                        </div>
+                    </a>
                 </li>
               </ul>
               {% endif %}
