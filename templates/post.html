@@ -38,9 +38,9 @@
               <div class="image-gallery">
                 <h2>Image Gallery</h2>
                 <div class="row">
-                  {% for image in image_files %}
+                  {% for image_file in image_files %}
                   <div class="col-md-4 mb-4">
-                    <img src="{{ image }}" class="img-fluid" alt="Image">
+                    <img src="{{ url_for('static', filename='assets/img/post_img/' + post_id + '/' + image_file) }}" class="img-fluid" alt="Image">
                   </div>
                   {% endfor %}
                 </div>
