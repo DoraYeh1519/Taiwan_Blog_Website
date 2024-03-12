@@ -252,23 +252,45 @@ def add_new_post():
 @admin_only
 def edit_post(post_id):
     post = db.get_or_404(BlogPost, post_id)
-    edit_form = CreatePostForm(
-        title=post.title,
-        subtitle=post.subtitle,
-        img_url=post.img_url,
-        img_folder=post.img_folder,
-        author=post.author,
-        body=post.body
-    )
+    edit_form = CreatePostForm(obj=post)
     if edit_form.validate_on_submit():
+        images_folder = edit_form.images_folder.data
+        if images_folder:
+            # Ensure that the uploaded file has a valid extension
+            if not allowed_file(images_folder.filename):
+                flash("File does not have an approved extension.")
+                return redirect(url_for("add_new_post"))
+
+            folder_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(images_folder.filename))
+            images_folder.save(folder_path)
+            # Extract the uploaded zip file
+            extract_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'extracted')
+            os.makedirs(extract_folder, exist_ok=True)  # Create folder if not exists
+            try:
+                with zipfile.ZipFile(folder_path, 'r') as zip_ref:
+                    zip_ref.extractall(extract_folder)
+            except zipfile.BadZipFile:
+                flash('Error: Uploaded file is not a valid zip file.')
+                os.remove(folder_path)  # Remove the uploaded zip file
+                return redirect(url_for("add_new_post"))
+            image_files = os.listdir(extract_folder)
+        else:
+            extract_folder = None
+            image_files = []
+
+
         post.title = edit_form.title.data
         post.subtitle = edit_form.subtitle.data
         post.img_url = edit_form.img_url.data
-        post.img_folder = edit_form.images_folder.data
         post.author = current_user.name
+        post.img_folder = extract_folder
         post.body = edit_form.body.data
+
         db.session.commit()
+
+        # Redirect to the post view page with the updated post object
         return redirect(url_for("show_post", post_id=post.id))
+
     return render_template("make-post.html", form=edit_form, is_edit=True)
 
 
