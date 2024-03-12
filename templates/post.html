@@ -39,8 +39,12 @@
                 <h2>Image Gallery</h2>
                 <div class="row">
                   {% for image_file in image_files %}
-                  <div class="col-md-4 mb-4">
-                    <img src="{{ url_for('static', filename='assets/img/post_img/' + post_id + '/' + image_file) }}" class="img-fluid" alt="Image">
+                  <div class="col-md-4 mb-3">
+                    <img
+                      src="{{ url_for('static', filename='assets/img/profile_img/extracted/' + post_id + '/' + image_file) }}"
+                      class="img-fluid"
+                      alt="{{ image }}"
+                    />
                   </div>
                   {% endfor %}
                 </div>

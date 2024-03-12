@@ -13,8 +13,9 @@ from sqlalchemy import desc
 import setuptools
 # Import your forms from the forms.py
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
+from flask_migrate import Migrate
+import zipfile
 import os
-
 
 # flask setup
 app = Flask(__name__)
@@ -27,6 +28,12 @@ Bootstrap5(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+# CONNECT TO DB
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("SQLALCHEMY_DATABASE_URI")
+db = SQLAlchemy()
+migrate = Migrate(app, db)
+db.init_app(app)
 
 
 @login_manager.user_loader
@@ -44,18 +51,9 @@ def admin_only(f):
 
     return decorated_function
 
-def get_image_files(post_id):
-    folder_path = os.environ.get("FOLDER_PATH") + str(post_id)
-    image_files = os.listdir(folder_path)
-    return image_files
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
-
-# CONNECT TO DB
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("SQLALCHEMY_DATABASE_URI")
-db = SQLAlchemy()
-db.init_app(app)
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif','zip'}
 
 
 # CONFIGURE TABLES
@@ -68,6 +66,7 @@ class BlogPost(db.Model):
     body = db.Column(db.Text, nullable=False)
     author = db.Column(db.String(250), nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
+    img_folder = db.Column(db.String(250), nullable=True)
 
 
 class User(UserMixin, db.Model):
@@ -171,8 +170,7 @@ def get_all_posts():
 def show_post(post_id):
     requested_post = db.get_or_404(BlogPost, post_id)
     form = CommentForm()
-    post_list = db.session.execute(db.select(BlogPost).order_by(desc(BlogPost.id)))
-    posts = post_list.scalars().all()
+
     if form.validate_on_submit():
         new_comment = Comment(
             comment=form.data['comment'],
@@ -183,14 +181,26 @@ def show_post(post_id):
         )
         db.session.add(new_comment)
         db.session.commit()
-        result = db.session.execute(db.select(Comment).order_by(desc(Comment.id)))
-        comments = result.scalars().all()
-        return redirect(url_for("show_post", post_id=post_id, all_comments=comments, all_posts=posts))
-    result = db.session.execute(db.select(Comment).order_by(desc(Comment.id)))
-    comments = result.scalars().all()
-    image_files = get_image_files(post_id)
+        return redirect(url_for("show_post", post_id=post_id))
+
+    comments = Comment.query.filter_by(post_id=post_id).order_by(Comment.id.desc()).all()
+    image_files = []
+
+    if requested_post.img_folder:
+        img_folder_path = requested_post.img_folder
+        # Get list of directory names (gallery names) in the img_folder_path
+        gallery_names = os.listdir(img_folder_path)
+
+        # Iterate over each gallery and get the list of filenames within each gallery
+        for gallery_name in gallery_names:
+            gallery_path = os.path.join(img_folder_path, gallery_name)
+            if os.path.isdir(gallery_path):
+                filenames = os.listdir(gallery_path)
+                # Extend the image_files list with filenames within this gallery
+                image_files.extend(filenames)
+
     return render_template("post.html", post=requested_post, form=form,
-                           all_comments=comments, all_posts=posts, image_files=image_files, post_id=str(post_id))
+                           all_comments=comments, image_files=image_files, post_id=str(post_id))
 
 
 @app.route("/new-post", methods=["GET", "POST"])
@@ -198,11 +208,37 @@ def show_post(post_id):
 def add_new_post():
     form = CreatePostForm()
     if form.validate_on_submit():
+        # Save uploaded folder to server
+        images_folder = form.images_folder.data
+        if images_folder:
+            # Ensure that the uploaded file has a valid extension
+            if not allowed_file(images_folder.filename):
+                flash("File does not have an approved extension.")
+                return redirect(url_for("add_new_post"))
+
+            folder_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(images_folder.filename))
+            images_folder.save(folder_path)
+            # Extract the uploaded zip file
+            extract_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'extracted')
+            os.makedirs(extract_folder, exist_ok=True)  # Create folder if not exists
+            try:
+                with zipfile.ZipFile(folder_path, 'r') as zip_ref:
+                    zip_ref.extractall(extract_folder)
+            except zipfile.BadZipFile:
+                flash('Error: Uploaded file is not a valid zip file.')
+                os.remove(folder_path)  # Remove the uploaded zip file
+                return redirect(url_for("add_new_post"))
+            image_files = os.listdir(extract_folder)
+        else:
+            extract_folder = None
+            image_files = []
+
         new_post = BlogPost(
             title=form.title.data,
             subtitle=form.subtitle.data,
             body=form.body.data,
             img_url=form.img_url.data,
+            img_folder=extract_folder,  # Set the extracted folder path
             author=current_user.name,
             date=date.today().strftime("%B %d, %Y")
         )
@@ -220,6 +256,7 @@ def edit_post(post_id):
         title=post.title,
         subtitle=post.subtitle,
         img_url=post.img_url,
+        img_folder=post.img_folder,
         author=post.author,
         body=post.body
     )
@@ -227,6 +264,7 @@ def edit_post(post_id):
         post.title = edit_form.title.data
         post.subtitle = edit_form.subtitle.data
         post.img_url = edit_form.img_url.data
+        post.img_folder = edit_form.images_folder.data
         post.author = current_user.name
         post.body = edit_form.body.data
         db.session.commit()
