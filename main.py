@@ -14,11 +14,13 @@ import setuptools
 # Import your forms from the forms.py
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 from flask_migrate import Migrate
+import pymysql
 import zipfile
 import os
 
 # flask setup
 app = Flask(__name__)
+SECRET_KEY = os.urandom(32)
 app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
 app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER')
 
@@ -30,7 +32,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 # CONNECT TO DB
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("SQLALCHEMY_DATABASE_URI")
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:EmeR2023@localhost:3306/dbms_project"
 db = SQLAlchemy()
 migrate = Migrate(app, db)
 db.init_app(app)
