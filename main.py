@@ -64,45 +64,65 @@ class BlogPost(db.Model):
     title = db.Column(db.String(250), unique=True, nullable=False)
     upload_date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
-    views = db.Column(db.Integer, nullable=False)
-    author_id = db.Column(db.String(250), nullable=False)
+    views = db.Column(db.Integer, default=0, nullable=False)
+    author_id = db.Column(db.String(250),db.ForeignKey('user.user_id'), nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
     img_folder = db.Column(db.String(250), nullable=True)
+    comments = db.relationship("Comment",backref="post")
+    reacts = db.relationship("React", backref="post")
 
 
 class User(UserMixin, db.Model):
+    __tablename__ = "user"
     user_id = db.Column(db.Integer, primary_key=True)
     user_name = db.Column(db.String(200))
     email = db.Column(db.String(100), unique=True)
     profile_img_url = db.Column(db.String(1000))
     password = db.Column(db.String(100))
+    posts = db.relationship("BlogPost", backref="author")
+    comments = db.relationship("Comment",backref="user")
+    reacts = db.relationship("React", backref="user")
 
 
 class Comment(db.Model):
+    __tablename__ = "comment"
     comment_id = db.Column(db.Integer, primary_key=True)
-    post_id = db.Column(db.Integer, nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('blogpost.post_id'), nullable=False)
     comment = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.String(250), nullable=False)
+    user_id = db.Column(db.String(250), db.ForeignKey('user.user_id'), nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
 
-class incoming_user(db.Model):
-    incoming_user_id = db.Column(db.Integer, primary_key=True)
+class Incoming_user(User):
+    __tablename__ = "incoming_user"
+    incoming_user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), primary_key=True)
     origin_school = db.Column(db.String(250),nullable = False)
     continent = db.Column(db.String(250),nullable = False)
     country = db.Column(db.String(250),nullable = False)
     region = db.Column(db.String(250),nullable = False)
 
-class outgoing_user(db.Model):
-    outgoing_user_id = db.Column(db.Integer, primary_key=True)
+    __mapper_args__ = {
+        'polymorphic_identity': 'Incoming_user',
+        'inherit_condition': incoming_user_id == User.user_id
+    }
+
+class Outgoing_user(User):
+    __tablename__ = "outgoing_user"
+    outgoing_user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), primary_key=True)
     exchanging_school = db.Column(db.String(250),nullable = False)
     continent = db.Column(db.String(250),nullable = False)
     country = db.Column(db.String(250),nullable = False)
     region = db.Column(db.String(250),nullable = False)
 
-class react(db.Model):
-    user_id = db.Column(db.Integer, primary_key=True)
-    post_id = db.Column(db.Integer, primary_key=True)
+    __mapper_args__ = {
+        'polymorphic_identity': 'Outgoing_user',
+        'inherit_condition': outgoing_user_id == User.user_id
+    }
+
+class React(db.Model):
+    __tablename__ = "react"
+    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('blogpost.post_id'), primary_key=True)
 
 @app.route('/register', methods=["GET", "POST"])
 def register():
