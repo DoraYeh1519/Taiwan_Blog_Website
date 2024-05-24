@@ -1,5 +1,4 @@
 from datetime import date
-
 from flask import Flask, abort, render_template, redirect, url_for, flash, request, session
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
@@ -46,7 +45,7 @@ def load_user(user_id):
 def admin_only(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if current_user.id != 1:
+        if current_user.user_id != 1:
             error = 'Sorry, this page is Admin only, please log in as Admin to access'
             return redirect(url_for('login', error=error))
         return f(*args, **kwargs)
@@ -60,37 +59,32 @@ def allowed_file(filename):
 
 # CONFIGURE TABLES
 class BlogPost(db.Model):
-    __tablename__ = "blog_posts"
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = "blogpost"
+    blogpost_id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(250), unique=True, nullable=False)
-    subtitle = db.Column(db.String(250), nullable=False)
-    date = db.Column(db.String(250), nullable=False)
+    upload_date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
-    author = db.Column(db.String(250), nullable=False)
+    views = db.Column(db.Integer, nullable=False)
+    author_id = db.Column(db.String(250), nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
     img_folder = db.Column(db.String(250), nullable=True)
 
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(1000))
+    user_id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String(200))
     email = db.Column(db.String(100), unique=True)
-    img_url = db.Column(db.String(1000))
+    profile_img_url = db.Column(db.String(1000))
     password = db.Column(db.String(100))
 
 
 class Comment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    comment_id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, nullable=False)
     comment = db.Column(db.Text, nullable=False)
-    author = db.Column(db.String(250), nullable=False)
+    user_id = db.Column(db.String(250), nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
-
-
-with app.app_context():
-    db.create_all()
-
 
 @app.route('/register', methods=["GET", "POST"])
 def register():
@@ -116,7 +110,8 @@ def register():
             img_url = None
 
         new_user = User(
-            name=form.data['name'],
+            user_id=form.data['user_id'],
+            user_name=form.data['user_name'],
             email=email,
             password=password,
             img_url=img_url
@@ -159,7 +154,7 @@ def logout():
 
 @app.route('/')
 def get_all_posts():
-    result = db.session.execute(db.select(BlogPost).order_by(desc(BlogPost.id)))
+    result = db.session.execute(db.select(BlogPost).order_by(desc(BlogPost.blogpost_id)))
     posts = result.scalars().all()
     # Check if there are any posts
     if len(posts) == 0:
@@ -176,8 +171,8 @@ def show_post(post_id):
     if form.validate_on_submit():
         new_comment = Comment(
             comment=form.data['comment'],
-            post_id=requested_post.id,
-            author=current_user.name,
+            post_id=requested_post.blogpost_id,
+            author=current_user.user_name,
             img_url=current_user.img_url,
             date=date.today().strftime("%B %d, %Y")
         )
@@ -185,7 +180,7 @@ def show_post(post_id):
         db.session.commit()
         return redirect(url_for("show_post", post_id=post_id))
 
-    comments = Comment.query.filter_by(post_id=post_id).order_by(Comment.id.desc()).all()
+    comments = Comment.query.filter_by(post_id=post_id).order_by(Comment.comment_id.desc()).all()
     image_files = []
 
     if requested_post.img_folder:
@@ -241,7 +236,7 @@ def add_new_post():
             body=form.body.data,
             img_url=form.img_url.data,
             img_folder=extract_folder,  # Set the extracted folder path
-            author=current_user.name,
+            author=current_user.user_name,
             date=date.today().strftime("%B %d, %Y")
         )
         db.session.add(new_post)
@@ -282,16 +277,15 @@ def edit_post(post_id):
 
 
         post.title = edit_form.title.data
-        post.subtitle = edit_form.subtitle.data
         post.img_url = edit_form.img_url.data
-        post.author = current_user.name
+        post.author_id = current_user.user_name
         post.img_folder = extract_folder
         post.body = edit_form.body.data
 
         db.session.commit()
 
         # Redirect to the post view page with the updated post object
-        return redirect(url_for("show_post", post_id=post.id))
+        return redirect(url_for("show_post", post_id=post.blogpost_id))
 
     return render_template("make-post.html", form=edit_form, is_edit=True)
 
