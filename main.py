@@ -71,7 +71,6 @@ class BlogPost(db.Model):
     comments = db.relationship("Comment",backref="post")
     reacts = db.relationship("React", backref="post")
 
-
 class User(UserMixin, db.Model):
     __tablename__ = "user"
     user_id = db.Column(db.Integer, primary_key=True)
@@ -87,7 +86,7 @@ class User(UserMixin, db.Model):
 class Comment(db.Model):
     __tablename__ = "comment"
     comment_id = db.Column(db.Integer, primary_key=True)
-    post_id = db.Column(db.Integer, db.ForeignKey('blogpost.post_id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('blogpost.blogpost_id'), nullable=False)
     comment = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.String(250), db.ForeignKey('user.user_id'), nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
@@ -122,7 +121,10 @@ class Outgoing_user(User):
 class React(db.Model):
     __tablename__ = "react"
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), primary_key=True)
-    post_id = db.Column(db.Integer, db.ForeignKey('blogpost.post_id'), primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('blogpost.blogpost_id'), primary_key=True)
+
+with app.app_context():
+    db.create_all()
 
 @app.route('/register', methods=["GET", "POST"])
 def register():
