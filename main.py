@@ -86,6 +86,24 @@ class Comment(db.Model):
     img_url = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
 
+class incoming_user(db.Model):
+    incoming_user_id = db.Column(db.Integer, primary_key=True)
+    origin_school = db.Column(db.String(250),nullable = False)
+    continent = db.Column(db.String(250),nullable = False)
+    country = db.Column(db.String(250),nullable = False)
+    region = db.Column(db.String(250),nullable = False)
+
+class outgoing_user(db.Model):
+    outgoing_user_id = db.Column(db.Integer, primary_key=True)
+    exchanging_school = db.Column(db.String(250),nullable = False)
+    continent = db.Column(db.String(250),nullable = False)
+    country = db.Column(db.String(250),nullable = False)
+    region = db.Column(db.String(250),nullable = False)
+
+class react(db.Model):
+    user_id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, primary_key=True)
+
 @app.route('/register', methods=["GET", "POST"])
 def register():
     form = RegisterForm()
