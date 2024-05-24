@@ -21,7 +21,7 @@ import os
 # flask setup
 app = Flask(__name__)
 SECRET_KEY = os.urandom(32)
-app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
+app.config['SECRET_KEY'] = SECRET_KEY
 app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER')
 
 # html setup
