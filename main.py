@@ -1,5 +1,5 @@
 from datetime import date
-from flask import Flask, abort, render_template, redirect, url_for, flash, request, session
+from flask import Flask, abort, render_template, redirect, url_for, flash, request, session, jsonify
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
@@ -11,11 +11,12 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import desc
 import setuptools
 # Import your forms from the forms.py
-from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
+from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm, IncomingForm, OutgoingForm
 from flask_migrate import Migrate
 import pymysql
 import zipfile
 import os
+import requests
 
 # flask setup
 app = Flask(__name__)
@@ -129,39 +130,72 @@ with app.app_context():
 @app.route('/register', methods=["GET", "POST"])
 def register():
     form = RegisterForm()
+    error = None
     if form.validate_on_submit():
-        error = None
         email = form.data['email']
+        user_id = form.data['id']
         password = generate_password_hash(form.data['password'], method='pbkdf2:sha256', salt_length=8)
-        # checking if email is already in database and referring to login page
+        
+        # checking if email is already in database
         result = db.session.execute(db.select(User).where(User.email == email))
-        existing_user = result.scalar()
-        if existing_user:
-            error = "Sorry, this email already exists, try logging inx instead:"
-            return redirect(url_for('login', error=error))
-
-        # Save the uploaded image to the server
-        img_file = form.img_url.data
-        if img_file and allowed_file(img_file.filename):
-            filename = secure_filename(img_file.filename)
-            img_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            img_url = filename
+        existing_userEmail = result.scalar()
+        if existing_userEmail:
+            error = "This email already exists"
         else:
-            img_url = None
+            result = db.session.execute(db.select(User).where(User.user_id == user_id))
+            existing_userID = result.scalar()
+            if existing_userID:
+                error = "This ID already exists"
 
-        new_user = User(
-            user_id=form.data['user_id'],
-            user_name=form.data['user_name'],
-            email=email,
-            password=password,
-            img_url=img_url
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        login_user(new_user)
-        return redirect(url_for('get_all_posts'))
-    return render_template("register.html", form=form)
+        if not error:
+            # Save the uploaded image to the server
+            img_file = form.img_url.data
+            if img_file and allowed_file(img_file.filename):
+                filename = secure_filename(img_file.filename)
+                img_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                img_url = filename
+            else:
+                img_url = None
 
+            # Save new user to the database
+            new_user = User(
+                user_id=user_id,
+                user_name=form.data['name'],
+                email=email,
+                password=password,
+                profile_img_url=img_url
+            )
+            db.session.add(new_user)
+            db.session.commit()
+
+            # Redirect based on student type
+            if form.student_type.data == 'incoming':
+                return redirect(url_for('incoming'))
+            else:
+                return redirect(url_for('outgoing'))
+
+    return render_template("register.html", form=form, error=error)
+
+@app.route('/register/incoming',methods=["GET", "POST"])
+def incoming():
+    form = IncomingForm()
+    return render_template("register_incoming.html", form=form)
+
+@app.route('/register/outgoing',methods=["GET", "POST"])
+def outgoing():
+    form = OutgoingForm()
+    return render_template("register_outgoing.html", form=form)
+    
+@app.route('/get_countries/<region>', methods=['GET'])
+def get_countries(region):
+    api_url = f'https://restcountries.com/v3.1/region/{region}'
+    response = requests.get(api_url)
+    if response.status_code == 200:
+        countries = response.json()
+        country_list = [{'name': country['name']['common']} for country in countries]
+        return jsonify(country_list)
+    else:
+        return jsonify({'error': 'Failed to fetch countries'}), response.status_code
 
 @app.route('/login', methods=["GET", "POST"])
 def login():

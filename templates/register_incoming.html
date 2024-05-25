@@ -1,0 +1,56 @@
+{% from "bootstrap5/form.html" import render_form %} {% block content %} {%
+    include "header.html" %}
+    
+    <!-- Page Header -->
+    <header
+      class="masthead"
+      style="background-image: url('../static/assets/img/register-bg.jpg')"
+    >
+      <div class="container position-relative px-4 px-lg-5">
+        <div class="row gx-4 gx-lg-5 justify-content-center">
+          <div class="col-md-10 col-lg-8 col-xl-7">
+            <div class="page-heading">
+              <h1>Register</h1>
+              <span class="subheading">Start Contributing to the Blog!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    </header>
+    
+    <main class="mb-4">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-md-10 mx-auto">
+            <form method="POST" action="{{ url_for('incoming') }}" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                {{ form.csrf_token }}
+                {{ render_form(form) }}
+            </form>
+          </div>
+        </div>
+      </div>
+      <script>
+        $(document).ready(function() {
+            $('#continent').change(function() {
+                var region = $(this).val();
+                $.getJSON('/get_countries/' + region, function(data) {
+                    var countrySelect = $('#country');
+                    countrySelect.empty();
+                    countrySelect.append('<option value="">Select Country</option>');
+                    if (data.error) {
+                        countrySelect.append('<option value="">' + data.error + '</option>');
+                    } else {
+                        $.each(data, function(index, country) {
+                            countrySelect.append('<option value="' + country.name + '">' + country.name + '</option>');
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+    </main>
+    
+    {% include "footer.html" %} {% endblock %}
+    
