@@ -93,7 +93,7 @@ class Comment(db.Model):
     img_url = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
 
-class Incoming_user(User):
+class Incoming_user(db.Model):
     __tablename__ = "incoming_user"
     incoming_user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), primary_key=True)
     origin_school = db.Column(db.String(250),nullable = False)
@@ -101,23 +101,14 @@ class Incoming_user(User):
     country = db.Column(db.String(250),nullable = False)
     region = db.Column(db.String(250),nullable = False)
 
-    __mapper_args__ = {
-        'polymorphic_identity': 'Incoming_user',
-        'inherit_condition': incoming_user_id == User.user_id
-    }
 
-class Outgoing_user(User):
+class Outgoing_user(db.Model):
     __tablename__ = "outgoing_user"
     outgoing_user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), primary_key=True)
     exchanging_school = db.Column(db.String(250),nullable = False)
     continent = db.Column(db.String(250),nullable = False)
     country = db.Column(db.String(250),nullable = False)
     region = db.Column(db.String(250),nullable = False)
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'Outgoing_user',
-        'inherit_condition': outgoing_user_id == User.user_id
-    }
 
 class React(db.Model):
     __tablename__ = "react"
@@ -140,11 +131,13 @@ def register():
         result = db.session.execute(db.select(User).where(User.email == email))
         existing_userEmail = result.scalar()
         if existing_userEmail:
+            flash("This email already exists", "danger")
             error = "This email already exists"
         else:
             result = db.session.execute(db.select(User).where(User.user_id == user_id))
             existing_userID = result.scalar()
             if existing_userID:
+                flash("This ID already exists", "danger")
                 error = "This ID already exists"
 
         if not error:
@@ -165,6 +158,7 @@ def register():
                 password=password,
                 profile_img_url=img_url
             )
+            session['user_id'] = user_id
             db.session.add(new_user)
             db.session.commit()
 
@@ -174,17 +168,63 @@ def register():
             else:
                 return redirect(url_for('outgoing'))
 
-    return render_template("register.html", form=form, error=error)
+    return render_template("register.html", form=form)
 
 @app.route('/register/incoming',methods=["GET", "POST"])
 def incoming():
+    user_id = session.get('user_id')
+    if not user_id:
+        # If user_id is not provided, redirect back to /register
+        return redirect(url_for('register'))
+    result = db.session.execute(db.select(User).where(User.user_id == user_id))
+    existing_userid = result.scalar()
+    if existing_userid == 'None':
+        return redirect(url_for('register'))
     form = IncomingForm()
-    return render_template("register_incoming.html", form=form)
+    if form.validate_on_submit():
+        country = form.data['country']
+        if not country:
+            flash("Please Select a Country", "danger")
+        else:
+            new_incominguser = Incoming_user(
+                incoming_user_id = user_id,
+                origin_school = form.data['origin_school'],
+                continent = form.data['continent'],
+                country = country,
+                region = form.data['region'] 
+            )
+            db.session.add(new_incominguser)
+            db.session.commit()
+            return redirect(url_for(login))
+    return render_template("register_incoming.html", form=form, user_id=user_id)
 
 @app.route('/register/outgoing',methods=["GET", "POST"])
 def outgoing():
+    user_id = session.get('user_id')
+    if not user_id:
+        # If user_id is not provided, redirect back to /register
+        return redirect(url_for('register'))
+    result = db.session.execute(db.select(User).where(User.user_id == user_id))
+    existing_userid = result.scalar()
+    if existing_userid == 'None':
+        return redirect(url_for('register'))
     form = OutgoingForm()
-    return render_template("register_outgoing.html", form=form)
+    if form.validate_on_submit():
+        country = form.data['country']
+        if not country:
+            flash("Please Select a Country", "danger")
+        else:
+            new_outgoinguser = Outgoing_user(
+                outgoing_user_id = user_id,
+                exchanging_school = form.data['exchanging_school'],
+                continent = form.data['continent'],
+                country = country,
+                region = form.data['region'] 
+            )
+            db.session.add(new_outgoinguser)
+            db.session.commit()
+            return redirect(url_for(login))
+    return render_template("register_outgoing.html", form=form, user_id=user_id)
     
 @app.route('/get_countries/<region>', methods=['GET'])
 def get_countries(region):
