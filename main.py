@@ -71,6 +71,7 @@ class BlogPost(db.Model):
     img_folder = db.Column(db.String(250), nullable=True)
     comments = db.relationship("Comment",backref="post")
     reacts = db.relationship("React", backref="post")
+    tagged = db.relationship("Tagged_user", backref="post")
 
 class User(UserMixin, db.Model):
     def get_id(self):
@@ -84,6 +85,7 @@ class User(UserMixin, db.Model):
     posts = db.relationship("BlogPost", backref="author")
     comments = db.relationship("Comment",backref="user")
     reacts = db.relationship("React", backref="user")
+    tagged = db.relationship("Tagged_user", backref="user")
 
 
 class Comment(db.Model):
@@ -114,6 +116,11 @@ class Outgoing_user(db.Model):
 
 class React(db.Model):
     __tablename__ = "react"
+    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('blogpost.blogpost_id'), primary_key=True)
+
+class Tagged_user(db.Model):
+    __tablename__ = "tagged_user"
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), primary_key=True)
     post_id = db.Column(db.Integer, db.ForeignKey('blogpost.blogpost_id'), primary_key=True)
 
