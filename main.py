@@ -73,6 +73,8 @@ class BlogPost(db.Model):
     reacts = db.relationship("React", backref="post")
 
 class User(UserMixin, db.Model):
+    def get_id(self):
+           return (self.user_id)
     __tablename__ = "user"
     user_id = db.Column(db.Integer, primary_key=True)
     user_name = db.Column(db.String(200))
@@ -223,7 +225,7 @@ def outgoing():
             )
             db.session.add(new_outgoinguser)
             db.session.commit()
-            return redirect(url_for(login))
+            return redirect(url_for('login'))
     return render_template("register_outgoing.html", form=form, user_id=user_id)
     
 @app.route('/get_countries/<region>', methods=['GET'])
@@ -242,11 +244,11 @@ def login():
     error = request.args.get('error')
     form = LoginForm()
     if form.validate_on_submit():
-        email = form.data['email']
+        user_id = form.data['id']
         password = form.data['password']
 
         # Find user by email entered.
-        result = db.session.execute(db.select(User).where(User.email == email))
+        result = db.session.execute(db.select(User).where(User.user_id == user_id))
         user = result.scalar()
         if not user:
             error = "E-mail not found. If you don't have an account, register instead."

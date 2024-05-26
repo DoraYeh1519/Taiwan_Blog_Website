@@ -42,7 +42,7 @@ class OutgoingForm(FlaskForm):
     submit = SubmitField('Submit')
 
 class LoginForm(FlaskForm):
-    email = StringField("Your E-Mail Address", validators=[DataRequired()])
+    id = StringField("Your User ID", validators=[DataRequired()])
     password = PasswordField("Your Password", validators=[DataRequired()])
     submit = SubmitField("Get Started!")
 
