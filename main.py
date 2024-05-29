@@ -32,14 +32,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 # CONNECT TO DB
-username = "" #Your username
-password = "" #Your password
-host = "localhost"
-port = 3306
-database = "dbms_project" #Your database name
-connection_string = f"mysql+pymysql://{username}:{password}@{host}:{port}/{database}"
-
-app.config['SQLALCHEMY_DATABASE_URI'] = connection_string
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:EmeR2023@localhost:3306/dbms_project"
 db = SQLAlchemy()
 migrate = Migrate(app, db)
 db.init_app(app)
