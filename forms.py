@@ -7,13 +7,12 @@ from flask_wtf.file import FileField, FileAllowed
 # WTForm for creating a blog post
 class CreatePostForm(FlaskForm):
     title = StringField("Blog Post Title", validators=[DataRequired()])
-    subtitle = StringField("Subtitle", validators=[DataRequired()])
-    img_url = StringField("Blog Image URL", validators=[DataRequired(), URL()])
+    img_url = StringField("Blog Image URL")
+    # img_url = StringField("Blog Image URL", validators=[URL()])
     body = CKEditorField("Blog Content", validators=[DataRequired()])
-    images_folder = FileField("Images Folder", validators=[FileAllowed(['zip'])])
+    images_folder = FileField("Images Folder")
+    # images_folder = FileField("Images Folder", validators=[FileAllowed(['zip'])])
     submit = SubmitField("Submit Post")
-
-
 
 class RegisterForm(FlaskForm):
     name = StringField("Your Name", validators=[DataRequired()])
@@ -30,14 +29,16 @@ class RegisterForm(FlaskForm):
 class IncomingForm(FlaskForm):
     origin_school = StringField("What school are you from?", validators=[DataRequired()])
     continent = SelectField('What continent is it on?', choices=[('', 'Select Continent'),('asia', 'Asia'), ('europe', 'Europe'), ('americas', 'Americas'), ('africa', 'Africa'), ('oceania', 'Oceania')], validators=[DataRequired()],id='continent')
-    country = SelectField('What country is it in?', choices=[],validate_choice=False)
+    country = StringField('What country is it in?', validators=[DataRequired()])
+    # country = SelectField('What country is it in?', choices=[],validate_choice=False)
     region = StringField('What region is it in?')
     submit = SubmitField('Submit')
     
 class OutgoingForm(FlaskForm):
     exchanging_school = StringField("What school do you go to for exchange?", validators=[DataRequired()])
     continent = SelectField('What continent is it on?', choices=[('', 'Select Continent'),('Asia', 'Asia'), ('Europe', 'Europe'), ('Americas', 'Americas'), ('Africa', 'Africa'), ('Oceania', 'Oceania')], validators=[DataRequired()],id='continent')
-    country = SelectField('What country is it in?', choices=[],validate_choice=False)
+    country = StringField('What country is it in?', validators=[DataRequired()])
+    # country = SelectField('What country is it in?', choices=[],validate_choice=False)
     region = StringField('What region is it in?')
     submit = SubmitField('Submit')
 
@@ -45,8 +46,6 @@ class LoginForm(FlaskForm):
     id = StringField("Your User ID", validators=[DataRequired()])
     password = PasswordField("Your Password", validators=[DataRequired()])
     submit = SubmitField("Get Started!")
-
-
 
 class CommentForm(FlaskForm):
     comment = CKEditorField("Add a Comment", validators=[DataRequired()])
