@@ -17,6 +17,7 @@ import pymysql
 import zipfile
 import os
 import requests
+import json
 
 # flask setup
 app = Flask(__name__)
@@ -30,10 +31,11 @@ Bootstrap5(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.login_view = "login"
 
 # CONNECT TO DB
-username = "" #Your username
-password = "" #Your password
+username = "root" #Your username
+password = "EmeR2023" #Your password
 host = "localhost"
 port = 3306
 database = "dbms_project" #Your database name
@@ -53,13 +55,12 @@ def load_user(user_id):
 def admin_only(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if current_user.user_id != 1:
-            error = 'Sorry, this page is Admin only, please log in as Admin to access'
+        if current_user.get_id() != 1:
+            error = 'You should login to access this pa'
             return redirect(url_for('login', error=error))
         return f(*args, **kwargs)
 
     return decorated_function
-
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif','zip'}
@@ -101,8 +102,7 @@ class Comment(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey('blogpost.blogpost_id'), nullable=False)
     comment = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.String(250), db.ForeignKey('user.user_id'), nullable=False)
-    img_url = db.Column(db.String(250), nullable=False)
-    date = db.Column(db.String(250), nullable=False)
+    comment_time = db.Column(db.String(250), nullable=False)
 
 class Incoming_user(db.Model):
     __tablename__ = "incoming_user"
@@ -134,6 +134,18 @@ class Tagged_user(db.Model):
 with app.app_context():
     db.create_all()
 
+#define functions
+
+def is_post_author(post_id):
+    query = BlogPost.query.filter_by(blogpost_id=post_id).first()
+    if query.author_id == current_user.get_id():
+        return True
+    else:
+        return False
+    
+def is_profile_user():
+    query = User.query.filter_by()
+    
 @app.route('/register', methods=["GET", "POST"])
 def register():
     form = RegisterForm()
@@ -166,17 +178,15 @@ def register():
             else:
                 img_url = None
 
-            # Save new user to the database
-            new_user = User(
-                user_id=user_id,
-                user_name=form.data['name'],
-                email=email,
-                password=password,
-                profile_img_url=img_url
-            )
-            session['user_id'] = user_id
-            db.session.add(new_user)
-            db.session.commit()
+            # Store user data in session instead of committing to the database
+            session['user_data'] = {
+                'user_id': user_id,
+                'user_name': form.data['name'],
+                'email': email,
+                'password': password,
+                'profile_img_url': img_url,
+                'student_type': form.student_type.data
+            }
 
             # Redirect based on student type
             if form.student_type.data == 'incoming':
@@ -186,72 +196,102 @@ def register():
 
     return render_template("register.html", form=form)
 
-@app.route('/register/incoming',methods=["GET", "POST"])
+@app.route('/register/incoming', methods=["GET", "POST"])
 def incoming():
-    user_id = session.get('user_id')
-    if not user_id:
-        # If user_id is not provided, redirect back to /register
+    user_data = session.get('user_data')
+    if not user_data:
         return redirect(url_for('register'))
-    result = db.session.execute(db.select(User).where(User.user_id == user_id))
-    existing_userid = result.scalar()
-    if existing_userid == 'None':
-        return redirect(url_for('register'))
+
     form = IncomingForm()
     if form.validate_on_submit():
         country = form.data['country']
         if not country:
             flash("Please Select a Country", "danger")
         else:
-            new_incominguser = Incoming_user(
-                incoming_user_id = user_id,
-                origin_school = form.data['origin_school'],
-                continent = form.data['continent'],
-                country = country,
-                region = form.data['region'] 
-            )
-            db.session.add(new_incominguser)
-            db.session.commit()
-            return redirect(url_for(login))
-    return render_template("register_incoming.html", form=form, user_id=user_id)
+            # Use a transaction to ensure data consistency
+            try:
+                with db.session.begin_nested():
+                    new_user = User(
+                        user_id=user_data['user_id'],
+                        user_name=user_data['user_name'],
+                        email=user_data['email'],
+                        password=user_data['password'],
+                        profile_img_url=user_data['profile_img_url']
+                    )
+                    db.session.add(new_user)
+                    db.session.flush()  # Flush to assign the user_id
 
-@app.route('/register/outgoing',methods=["GET", "POST"])
+                    new_incominguser = Incoming_user(
+                        incoming_user_id=user_data['user_id'],
+                        origin_school=form.data['origin_school'],
+                        continent=form.data['continent'],
+                        country=country,
+                        region=form.data['region']
+                    )
+                    db.session.add(new_incominguser)
+
+                db.session.commit()
+                session.pop('user_data', None)
+                return redirect(url_for('login'))
+            except Exception as e:
+                db.session.rollback()
+                flash("An error occurred: " + str(e), "danger")
+
+    return render_template("register_incoming.html", form=form, user_id=user_data['user_id'])
+
+@app.route('/register/outgoing', methods=["GET", "POST"])
 def outgoing():
-    user_id = session.get('user_id')
-    if not user_id:
-        # If user_id is not provided, redirect back to /register
+    user_data = session.get('user_data')
+    if not user_data:
         return redirect(url_for('register'))
-    result = db.session.execute(db.select(User).where(User.user_id == user_id))
-    existing_userid = result.scalar()
-    if existing_userid == 'None':
-        return redirect(url_for('register'))
+
     form = OutgoingForm()
     if form.validate_on_submit():
         country = form.data['country']
         if not country:
             flash("Please Select a Country", "danger")
         else:
-            new_outgoinguser = Outgoing_user(
-                outgoing_user_id = user_id,
-                exchanging_school = form.data['exchanging_school'],
-                continent = form.data['continent'],
-                country = country,
-                region = form.data['region'] 
-            )
-            db.session.add(new_outgoinguser)
-            db.session.commit()
-            return redirect(url_for('login'))
-    return render_template("register_outgoing.html", form=form, user_id=user_id)
+            # Use a transaction to ensure data consistency
+            try:
+                with db.session.begin_nested():
+                    new_user = User(
+                        user_id=user_data['user_id'],
+                        user_name=user_data['user_name'],
+                        email=user_data['email'],
+                        password=user_data['password'],
+                        profile_img_url=user_data['profile_img_url']
+                    )
+                    db.session.add(new_user)
+                    db.session.flush()  # Flush to assign the user_id
+
+                    new_outgoinguser = Outgoing_user(
+                        outgoing_user_id=user_data['user_id'],
+                        exchanging_school=form.data['exchanging_school'],
+                        continent=form.data['continent'],
+                        country=country,
+                        region=form.data['region']
+                    )
+                    db.session.add(new_outgoinguser)
+
+                db.session.commit()
+                session.pop('user_data', None)
+                return redirect(url_for('login'))
+            except Exception as e:
+                db.session.rollback()
+                flash("An error occurred: " + str(e), "danger")
+
+    return render_template("register_outgoing.html", form=form, user_id=user_data['user_id'])
     
-@app.route('/get_countries/<region>', methods=['GET'])
-def get_countries(region):
-    api_url = f'https://restcountries.com/v3.1/region/{region}'
-    response = requests.get(api_url)
-    if response.status_code == 200:
-        countries = response.json()
-        country_list = [{'name': country['name']['common']} for country in countries]
-        return jsonify(country_list)
-    else:
-        return jsonify({'error': 'Failed to fetch countries'}), response.status_code
+# @app.route('/get_countries/<region>', methods=['GET'])
+# def get_countries(region):
+#     api_url = f'https://restcountries.com/v3.1/region/{region}'
+#     response = requests.get(api_url)
+#     if response.status_code == 200:
+#         countries = response.json()
+#         country_list = [{'name': country['name']['common']} for country in countries]
+#         return jsonify(country_list)
+#     else:
+#         return jsonify({'error': 'Failed to fetch countries'}), response.status_code
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
@@ -265,7 +305,7 @@ def login():
         result = db.session.execute(db.select(User).where(User.user_id == user_id))
         user = result.scalar()
         if not user:
-            error = "E-mail not found. If you don't have an account, register instead."
+            error = "ID not found. If you don't have an account, register instead."
         elif not check_password_hash(user.password, password):
             error = 'Wrong password, please try again'
         else:
@@ -281,16 +321,19 @@ def logout():
     logout_user()
     return redirect(url_for('get_all_posts'))
 
-
+#TODO: make blogposts order by views
+#TODO: add another posts array for exchange informations
 @app.route('/')
 def get_all_posts():
-    result = db.session.execute(db.select(BlogPost).order_by(desc(BlogPost.blogpost_id)))
-    posts = result.scalars().all()
+    result = db.session.execute(db.select(BlogPost).order_by(desc(BlogPost.views)))
+    popular_posts = result.scalars().all()
+    result2 = db.session.execute(db.select(BlogPost).filter_by(author_id = 1))
+    exchange_informations = result2.scalars().all()
     # Check if there are any posts
-    if len(posts) == 0:
+    if len(popular_posts) == 0:
         # If no posts are available, render a template indicating that there are no posts.
         return render_template("no_posts.html")
-    return render_template("index.html", all_posts=posts)
+    return render_template("index.html", popular_posts=popular_posts, exchange_informations=exchange_informations)
 
 
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
@@ -299,16 +342,18 @@ def show_post(post_id):
     form = CommentForm()
 
     if form.validate_on_submit():
-        new_comment = Comment(
-            comment=form.data['comment'],
-            post_id=requested_post.blogpost_id,
-            author=current_user.user_name,
-            img_url=current_user.img_url,
-            date=date.today().strftime("%B %d, %Y")
-        )
-        db.session.add(new_comment)
-        db.session.commit()
-        return redirect(url_for("show_post", post_id=post_id))
+        if not current_user.is_authenticated:
+            return app.login_manager.unauthorized()
+        else:
+            new_comment = Comment(
+                comment=form.data['comment'],
+                post_id=requested_post.blogpost_id,
+                user_id=current_user.user_id,
+                comment_time=date.today().strftime("%B %d, %Y")
+            )
+            db.session.add(new_comment)
+            db.session.commit()
+            return redirect(url_for("show_post", post_id=post_id))
 
     comments = Comment.query.filter_by(post_id=post_id).order_by(Comment.comment_id.desc()).all()
     image_files = []
@@ -327,11 +372,11 @@ def show_post(post_id):
                 image_files.extend(filenames)
 
     return render_template("post.html", post=requested_post, form=form,
-                           all_comments=comments, image_files=image_files, post_id=str(post_id))
+                           all_comments=comments, image_files=image_files, post_id=str(post_id), is_author = is_post_author(post_id))
 
 
 @app.route("/new-post", methods=["GET", "POST"])
-@admin_only
+@login_required
 def add_new_post():
     form = CreatePostForm()
     if form.validate_on_submit():
@@ -362,16 +407,27 @@ def add_new_post():
 
         new_post = BlogPost(
             title=form.title.data,
-            subtitle=form.subtitle.data,
+            upload_date=date.today().strftime("%B %d, %Y"),
             body=form.body.data,
             img_url=form.img_url.data,
             img_folder=extract_folder,  # Set the extracted folder path
-            author=current_user.user_name,
-            date=date.today().strftime("%B %d, %Y")
+            author_id=current_user.user_id,
+            views=0
         )
         db.session.add(new_post)
         db.session.commit()
+
+        post_id = new_post.blogpost_id
+        tagged_users_data = request.form.get('tagged_users_data')
+        if tagged_users_data:
+            tagged_users = json.loads(tagged_users_data)
+            for user in tagged_users:
+                tagged_user = Tagged_user(user_id=int(user['id']), post_id=post_id)
+                db.session.add(tagged_user)
+        
+        db.session.commit()
         return redirect(url_for("get_all_posts"))
+    
     return render_template("make-post.html", form=form)
 
 
@@ -442,6 +498,19 @@ def delete_comment(comment_id, post_id):
 def about():
     return render_template("about.html")
 
+@app.route("/test")
+def test():
+    return render_template("test.html")
+
+
+@app.route('/check_user', methods=['POST'])
+def check_user():
+    user_id = request.form['user_id']
+    user = User.query.filter_by(user_id=user_id).first()
+    if user:
+        return jsonify({'status': 'found', 'user': {'id': user.user_id, 'name': user.user_name}})
+    else:
+        return jsonify({'status': 'not found'})
 
 if __name__ == "__main__":
     app.run(debug=False)

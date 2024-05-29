@@ -55,12 +55,12 @@
       </h3>
   </div>
   <!-- Headline Post -->
-  {% if all_posts[0]: %}
-  <div class="post-container p-4 p-md-5 mb-4 rounded text-body-emphasis bg-body-secondary" style="background-image: url('{{ all_posts[0].img_url }}'); height: 250px;">
+  {% if popular_posts[0]: %}
+  <div class="post-container p-4 p-md-5 mb-4 rounded text-body-emphasis bg-body-secondary" style="background-image: url('{{ popular_posts[0].img_url }}'); height: 250px;">
     <div class="col-lg-6 px-0">
-      <h1 class="mb-0 text-white">{{ all_posts[0].title }}</h1>
-      <p class="lead my-3 text-white">{{ all_posts[0].subtitle }}</p>
-      <p class="lead mb-0"><a href="{{ url_for('show_post', post_id=all_posts[0].id) }}" class="text-white fw-bold">Continue reading...</a></p>
+      <h1 class="mb-0 text-white">{{ popular_posts[0].title }}</h1>
+      <p class="lead my-3 text-white">{{ popular_posts[0].subtitle }}</p>
+      <p class="lead mb-0"><a href="{{ url_for('show_post', post_id=popular_posts[0].blogpost_id) }}" class="text-white fw-bold">Continue reading...</a></p>
     </div>
   </div>
   {% endif %}
@@ -72,18 +72,17 @@
   </div>
   <!-- Other Posts -->
   <div class="row mb-2">
-    {% for post in all_posts %}
+    {% for post in popular_posts %}
         <div class="col-md-6">
           <div class="row g-0 border rounded overflow-hidden flex-md-row mb-4 shadow-sm h-md-250 position-relative">
             <div class="col p-4 d-flex flex-column position-static">
-              <a href="{{ url_for('show_post', post_id=post.id) }}">
+              <a href="{{ url_for('show_post', post_id=post.blogpost_id) }}">
                 <h3 class="mb-0">{{ post.title }}
                 {% if current_user.id == 1: %}
-                    <a href="{{url_for('delete_post', post_id=post.id) }}">✘</a>
+                    <a href="{{url_for('delete_post', post_id=post.blogpost_id) }}">✘</a>
                 {% endif %}
                 </h3>
-                <div class="mb-1 text-body-secondary">{{ post.date }}</div>
-                <p class="card-text mb-auto">{{ post.subtitle }}</p>
+                <div class="mb-1 text-body-secondary">{{ post.unload_date }}</div>
               </a>
             </div>
             <div class="col-auto d-none d-lg-block" style="width: 100px; height: 150px; overflow: hidden;">
