@@ -321,8 +321,6 @@ def logout():
     logout_user()
     return redirect(url_for('get_all_posts'))
 
-#TODO: make blogposts order by views
-#TODO: add another posts array for exchange informations
 @app.route('/')
 def get_all_posts():
     result = db.session.execute(db.select(BlogPost).order_by(desc(BlogPost.views)))
@@ -335,7 +333,7 @@ def get_all_posts():
         return render_template("no_posts.html")
     return render_template("index.html", popular_posts=popular_posts, exchange_informations=exchange_informations)
 
-
+#TODO: check comment function
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
     requested_post = db.get_or_404(BlogPost, post_id)
@@ -488,7 +486,7 @@ def edit_post(post_id):
 
     return render_template("make-post.html", form=edit_form, post=post, is_edit=True, tagged_users_data=tagged_users_data)
 
-
+#TODO: Delete post and comments, can check 'cascade' in the model
 @app.route("/delete/<int:post_id>")
 @admin_only
 def delete_post(post_id):
@@ -524,6 +522,9 @@ def check_user():
         return jsonify({'status': 'found', 'user': {'id': user.user_id, 'name': user.user_name}})
     else:
         return jsonify({'status': 'not found'})
+
+#TODO: make a profile page
+#TODO: make a edit-profile page
 
 if __name__ == "__main__":
     app.run(debug=False)
