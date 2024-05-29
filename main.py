@@ -428,52 +428,65 @@ def add_new_post():
         db.session.commit()
         return redirect(url_for("get_all_posts"))
     
-    return render_template("make-post.html", form=form)
-
+    return render_template("make-post.html", form=form,is_edit = False)
 
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
-@admin_only
 def edit_post(post_id):
+    if not is_post_author(post_id):
+        return redirect(url_for("show_post",post_id))
     post = db.get_or_404(BlogPost, post_id)
     edit_form = CreatePostForm(obj=post)
+    
+    # 获取已标记的用户
+    tagged_users = Tagged_user.query.filter_by(post_id=post_id).all()
+
+    tagged_users_data = [{"id": user.user_id, "name": user.user.user_name} for user in tagged_users]
+    
+
     if edit_form.validate_on_submit():
         images_folder = edit_form.images_folder.data
         if images_folder:
-            # Ensure that the uploaded file has a valid extension
             if not allowed_file(images_folder.filename):
                 flash("File does not have an approved extension.")
-                return redirect(url_for("add_new_post"))
+                return redirect(url_for("edit_post", post_id=post_id))
 
             folder_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(images_folder.filename))
             images_folder.save(folder_path)
-            # Extract the uploaded zip file
             extract_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'extracted')
-            os.makedirs(extract_folder, exist_ok=True)  # Create folder if not exists
+            os.makedirs(extract_folder, exist_ok=True)
             try:
                 with zipfile.ZipFile(folder_path, 'r') as zip_ref:
                     zip_ref.extractall(extract_folder)
             except zipfile.BadZipFile:
                 flash('Error: Uploaded file is not a valid zip file.')
-                os.remove(folder_path)  # Remove the uploaded zip file
-                return redirect(url_for("add_new_post"))
+                os.remove(folder_path)
+                return redirect(url_for("edit_post", post_id=post_id))
             image_files = os.listdir(extract_folder)
         else:
             extract_folder = None
             image_files = []
 
-
         post.title = edit_form.title.data
         post.img_url = edit_form.img_url.data
-        post.author_id = current_user.user_name
+        post.author_id = current_user.user_id
         post.img_folder = extract_folder
         post.body = edit_form.body.data
 
         db.session.commit()
 
-        # Redirect to the post view page with the updated post object
+        tagged_users_data = request.form.get('tagged_users_data')
+        if tagged_users_data:
+            tagged_users = json.loads(tagged_users_data)
+            Tagged_user.query.filter_by(post_id=post_id).delete()
+            for user in tagged_users:
+                tagged_user = Tagged_user(user_id=int(user['id']), post_id=post_id)
+                db.session.add(tagged_user)
+
+        db.session.commit()
+
         return redirect(url_for("show_post", post_id=post.blogpost_id))
 
-    return render_template("make-post.html", form=edit_form, is_edit=True)
+    return render_template("make-post.html", form=edit_form, post=post, is_edit=True, tagged_users_data=tagged_users_data)
 
 
 @app.route("/delete/<int:post_id>")
