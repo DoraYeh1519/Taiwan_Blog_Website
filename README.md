@@ -3,7 +3,7 @@
 ## Setup
 #### 1. Setup the program and virtual environment:
    1. Open the terminal by ``` Ctrl+` ```
-   2. Execute ``` $pip install -r requirement.txt ``` to install packages
+   2. Execute ``` $pip install -r requirements.txt ``` to install packages
    3. Open it in visual studio and try running it. The editor will ask you to setup virtual environment. Just do it.
 #### 2. Setup Database:
    1. Import **'dbms_project.sql'** file from folder **'DataBase Setting'** into your MySQL server.
