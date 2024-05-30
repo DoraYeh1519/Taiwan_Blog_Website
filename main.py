@@ -52,17 +52,6 @@ db.init_app(app)
 def load_user(user_id):
     return db.get_or_404(User, user_id)
 
-
-def admin_only(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if current_user.get_id() != 1:
-            error = 'You should login to access this pa'
-            return redirect(url_for('login', error=error))
-        return f(*args, **kwargs)
-
-    return decorated_function
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif','zip'}
 
@@ -111,7 +100,8 @@ class Incoming_user(db.Model):
     origin_school = db.Column(db.String(250),nullable = False)
     continent = db.Column(db.String(250),nullable = False)
     country = db.Column(db.String(250),nullable = False)
-    region = db.Column(db.String(250),nullable = False)
+    region = db.Column(db.String(250),nullable = True)
+    info = db.Column(db.Text, nullable=True)
 
 
 class Outgoing_user(db.Model):
@@ -120,7 +110,8 @@ class Outgoing_user(db.Model):
     exchanging_school = db.Column(db.String(250),nullable = False)
     continent = db.Column(db.String(250),nullable = False)
     country = db.Column(db.String(250),nullable = False)
-    region = db.Column(db.String(250),nullable = False)
+    region = db.Column(db.String(250),nullable = True)
+    info = db.Column(db.Text, nullable=True)
 
 class React(db.Model):
     __tablename__ = "react"
@@ -144,8 +135,12 @@ def is_post_author(post_id):
     else:
         return False
     
-def is_profile_user():
-    query = User.query.filter_by()
+def is_profile_user(user_id):
+    query = User.query.filter_by(user_id=user_id).first()
+    if query.user_id == current_user.get_id():
+        return True
+    else:
+        return False
     
 @app.route('/register', methods=["GET", "POST"])
 def register():
@@ -154,6 +149,10 @@ def register():
     if form.validate_on_submit():
         email = form.data['email']
         user_id = form.data['id']
+        #confirm password
+        if form.data['password'] != form.data['confirm_password']:
+            flash("Passwords do not match", "danger")
+            error = "Passwords do not match"
         password = generate_password_hash(form.data['password'], method='pbkdf2:sha256', salt_length=8)
         
         # checking if email is already in database
@@ -227,7 +226,8 @@ def incoming():
                         origin_school=form.data['origin_school'],
                         continent=form.data['continent'],
                         country=country,
-                        region=form.data['region']
+                        region=form.data['region'],
+                        info=form.data['info']
                     )
                     db.session.add(new_incominguser)
 
@@ -270,7 +270,8 @@ def outgoing():
                         exchanging_school=form.data['exchanging_school'],
                         continent=form.data['continent'],
                         country=country,
-                        region=form.data['region']
+                        region=form.data['region'],
+                        info = form.data['info']
                     )
                     db.session.add(new_outgoinguser)
 
@@ -337,19 +338,29 @@ def get_all_posts():
         return render_template("no_posts.html")
     return render_template("index.html", isLogin=isLogin, popular_posts=popular_posts, exchange_informations=exchange_informations)
 
-#TODO: check comment function
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
     tagged_users = Tagged_user.query.filter_by(post_id=post_id).all()
     tagged_users_data = [{"id": user.user_id, "name": user.user.user_name} for user in tagged_users]
 
+    if not current_user.is_authenticated:
+        is_like = False
+    else:
+        like = React.query.filter_by(user_id=current_user.get_id(), post_id=post_id).first()
+        if not like:
+            is_like = False
+        else:
+            is_like = True
+
     requested_post = db.get_or_404(BlogPost, post_id)
+    requested_post.views += 1
+    db.session.commit()
     form = CommentForm()
 
     if form.validate_on_submit():
         if not current_user.is_authenticated:
             flash("You need to login to comment on a post.")
-            return redirect(url_for("login"))
+            return redirect(url_for("show_post", post_id=post_id))
         else:
             new_comment = Comment(
                 comment=form.data['comment'],
@@ -379,8 +390,21 @@ def show_post(post_id):
 
     return render_template("post.html", post=requested_post, form=form,
                            all_comments=comments, image_files=image_files, post_id=str(post_id), is_author = is_post_author(post_id),
-                           tagged_users = tagged_users_data)
+                           tagged_users = tagged_users_data, is_like=is_like)
 
+@app.route("/like/<int:post_id>")
+def like_post(post_id):
+    if not current_user.is_authenticated:
+        flash("You need to login to like a post.")
+        return redirect(url_for("show_post", post_id=post_id))
+    like = React.query.filter_by(user_id=current_user.user_id, post_id=post_id).first()
+    if not like:
+        new_like = React(user_id=current_user.user_id, post_id=post_id)
+        db.session.add(new_like)
+    else:
+        db.session.delete(like)
+    db.session.commit()
+    return redirect(url_for("show_post", post_id=post_id))
 
 @app.route("/new-post", methods=["GET", "POST"])
 @login_required
@@ -433,7 +457,7 @@ def add_new_post():
                 db.session.add(tagged_user)
         
         db.session.commit()
-        return redirect(url_for("get_all_posts"))
+        return redirect(url_for("show_post", post_id=post_id))
     
     return render_template("make-post.html", form=form,is_edit = False)
 
@@ -533,8 +557,78 @@ def check_user():
     else:
         return jsonify({'status': 'not found'})
 
-#TODO: make a profile page
-#TODO: make a edit-profile page
+@app.route('/profile/<int:user_id>', methods=['POST', 'GET'])
+def profile(user_id):
+    user = User.query.filter_by(user_id=user_id).first()
+    if not user:
+        abort(404)
+    #check whether the user is the incoming or outgoing student
+    incoming_user = Incoming_user.query.filter_by(incoming_user_id=user_id).first()
+    outgoing_user = Outgoing_user.query.filter_by(outgoing_user_id=user_id).first()
+    if incoming_user:
+        user_student_type = 'International Student'
+        detailed_info = incoming_user
+    elif outgoing_user:
+        user_student_type = 'Taiwanese Student'
+        detailed_info = outgoing_user
+    else:
+        user_student_type = 'Xchange'
+        detailed_info = {
+            'info': 'It is the official account of the website.'
+        }
+    posts = BlogPost.query.filter_by(author_id=user_id).all()
+    tagged_posts = Tagged_user.query.filter_by(user_id=user_id).all()
+    tagged_posts = [post.post for post in tagged_posts]
+    return render_template("profile.html", user=user, posts=posts, tagged_posts=tagged_posts, detailed_info=detailed_info, 
+                           user_student_type=user_student_type,is_profile_user=is_profile_user(user_id))
+
+@app.route('/edit-profile/<int:user_id>', methods=['POST', 'GET'])
+def edit_profile(user_id):
+    if not is_profile_user(user_id):
+        flash("You are not the owner of this profile.", "danger")
+        return redirect(url_for('profile', user_id=user_id))
+    user = User.query.filter_by(user_id=user_id).first()
+    if not user:
+        abort(404)
+    incoming_user = Incoming_user.query.filter_by(incoming_user_id=user_id).first()
+    outgoing_user = Outgoing_user.query.filter_by(outgoing_user_id=user_id).first()
+    if incoming_user:
+        form=IncomingForm(obj=incoming_user)
+    elif outgoing_user:
+        form=OutgoingForm(obj=outgoing_user)
+    else:
+        redirect(url_for('profile', user_id=user_id))
+    if form.validate_on_submit():
+        if incoming_user:
+            incoming_user.origin_school = form.origin_school.data
+            incoming_user.continent = form.continent.data
+            incoming_user.country = form.country.data
+            incoming_user.region = form.region.data
+            incoming_user.info = form.info.data
+        elif outgoing_user:
+            outgoing_user.exchanging_school = form.exchanging_school.data
+            outgoing_user.continent = form.continent.data
+            outgoing_user.country = form.country.data
+            outgoing_user.region = form.region.data
+            outgoing_user.info = form.info.data
+        db.session.commit()
+        return redirect(url_for('profile', user_id=user_id))
+    return render_template("edit-profile.html", form=form, user_id=user_id)
+
+    
+
+#check password
+@app.route('/check_password', methods=['POST'])
+def check_password():
+    data = request.json
+    user_id = data.get('user_id')
+    password = data.get('password')
+    
+    user = User.query.filter_by(user_id=user_id).first()
+    if user and check_password_hash(user.password, password):
+        return jsonify({'status': 'correct'})
+    else:
+        return jsonify({'status': 'incorrect'})
 
 if __name__ == "__main__":
     app.run(debug=False)

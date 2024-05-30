@@ -15,10 +15,11 @@ class CreatePostForm(FlaskForm):
     submit = SubmitField("Submit Post")
 
 class RegisterForm(FlaskForm):
-    name = StringField("Your Name", validators=[DataRequired()])
-    id = StringField("Your Student ID", validators=[DataRequired(),Length(min=9,max=9,message='invalid ID'),Regexp('^\d{9}$',message='incorrect format')])
-    email = StringField("Your E-Mail Address", validators=[DataRequired(),Email(message='invalid email')])
-    password = PasswordField("Your Password", validators=[DataRequired(),Length(min=8 ,message='Too short')])
+    name = StringField("Your Name*", validators=[DataRequired()])
+    id = StringField("Your Student ID *", validators=[DataRequired(),Length(min=9,max=9,message='invalid ID'),Regexp('^\d{9}$',message='incorrect format')])
+    email = StringField("Your E-Mail Address *", validators=[DataRequired(),Email(message='invalid email')])
+    password = PasswordField("Your Password *", validators=[DataRequired(),Length(min=8 ,message='Too short')])
+    confirm_password = PasswordField("Confirm Password *", validators=[DataRequired()])
     img_url = FileField("Profile Picture")
     student_type = SelectField('Are you an incoming or outgoing student?', 
                                choices=[('incoming', 'Incoming'), ('outgoing', 'Outgoing')], 
@@ -27,19 +28,21 @@ class RegisterForm(FlaskForm):
 
 
 class IncomingForm(FlaskForm):
-    origin_school = StringField("What school are you from?", validators=[DataRequired()])
-    continent = SelectField('What continent is it on?', choices=[('', 'Select Continent'),('asia', 'Asia'), ('europe', 'Europe'), ('americas', 'Americas'), ('africa', 'Africa'), ('oceania', 'Oceania')], validators=[DataRequired()],id='continent')
-    country = StringField('What country is it in?', validators=[DataRequired()])
+    origin_school = StringField("What school are you from? *", validators=[DataRequired()])
+    continent = SelectField('What continent are you from? *', choices=[('', 'Select Continent'),('asia', 'Asia'), ('europe', 'Europe'), ('americas', 'Americas'), ('africa', 'Africa'), ('oceania', 'Oceania')], validators=[DataRequired()],id='continent')
+    country = StringField('What country are you from? *', validators=[DataRequired()])
     # country = SelectField('What country is it in?', choices=[],validate_choice=False)
-    region = StringField('What region is it in?')
+    region = StringField('What region are you from?')
+    info = CKEditorField('Tell us about yourself(eg. hobbies, interests, etc.) ')
     submit = SubmitField('Submit')
     
 class OutgoingForm(FlaskForm):
-    exchanging_school = StringField("What school do you go to for exchange?", validators=[DataRequired()])
-    continent = SelectField('What continent is it on?', choices=[('', 'Select Continent'),('asia', 'Asia'), ('europe', 'Europe'), ('americas', 'Americas'), ('africa', 'Africa'), ('oceania', 'Oceania')], validators=[DataRequired()],id='continent')
-    country = StringField('What country is it in?', validators=[DataRequired()])
+    exchanging_school = StringField("What school do you go to for exchange? *", validators=[DataRequired()])
+    continent = SelectField('What continent is it on? *', choices=[('', 'Select Continent'),('asia', 'Asia'), ('europe', 'Europe'), ('americas', 'Americas'), ('africa', 'Africa'), ('oceania', 'Oceania')], validators=[DataRequired()],id='continent')
+    country = StringField('What country is it in? *', validators=[DataRequired()])
     # country = SelectField('What country is it in?', choices=[],validate_choice=False)
     region = StringField('What region is it in?')
+    info = CKEditorField('Tell us about yourself(eg. hobbies, interests, etc.) ')
     submit = SubmitField('Submit')
 
 class LoginForm(FlaskForm):

@@ -1,0 +1,100 @@
+{% from "bootstrap5/form.html" import render_form %}
+{% block content %}
+{% include "header.html" %}
+
+<!-- Page Header -->
+<header class="masthead" style="background-image: url('../static/assets/img/register-bg.jpg')">
+    <div class="container position-relative px-4 px-lg-5">
+        <div class="row gx-4 gx-lg-5 justify-content-center">
+            <div class="col-md-10 col-lg-8 col-xl-7">
+                <div class="page-heading">
+                    <h1>Register</h1>
+                    <span class="subheading">Start Contributing to the Blog!</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="mb-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+                <form id="register-form" method="POST" action="{{ url_for('edit_profile', user_id=user_id) }}" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    {{ form.csrf_token }}
+                    {{ render_form(form) }}
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal for password input -->
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="passwordModalLabel">Enter Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="password-input">Password:</label>
+                <input type="password" id="password-input" class="form-control">
+                <div id="error-message" class="text-danger mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submit-password-btn">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#register-form').submit(function(event) {
+            event.preventDefault();  // Prevent the form from submitting
+            var passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+            passwordModal.show();  // Show the password modal
+        });
+
+        $('#submit-password-btn').click(function() {
+            var password = $('#password-input').val();
+            var formData = $('#register-form').serializeArray();
+            formData.push({name: 'password', value: password});
+            formData = formData.reduce(function(result, item) {
+                result[item.name] = item.value;
+                return result;
+            }, {});
+            var userId = '{{ user_id }}';  // Assuming user_id is available in the template context
+
+            $.ajax({
+                url: '/check_password',
+                type: 'POST',
+                data: JSON.stringify({user_id: userId, ...formData}),
+                contentType: 'application/json',
+                success: function(response) {
+                    if (response.status === 'correct') {
+                        window.location.href = '/profile/{{ user_id }}';  // Redirect to profile page or another success page
+                    } else {
+                        $('#error-message').text('Wrong password');
+                    }
+                }
+            });
+        });
+    });
+</script>
+
+{% include "footer.html" %}
+{% endblock %}

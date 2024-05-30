@@ -34,7 +34,7 @@ CREATE TABLE `blogpost` (
   PRIMARY KEY (`blogpost_id`,`author_id`),
   KEY `author_idx` (`author_id`),
   CONSTRAINT `author_id` FOREIGN KEY (`author_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -43,6 +43,7 @@ CREATE TABLE `blogpost` (
 
 LOCK TABLES `blogpost` WRITE;
 /*!40000 ALTER TABLE `blogpost` DISABLE KEYS */;
+INSERT INTO `blogpost` VALUES (9,'Our First Post!','May 31, 2024','<p>To make sure the home page works well, this post is needed</p>\r\n',1,1,'',NULL);
 /*!40000 ALTER TABLE `blogpost` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -64,7 +65,7 @@ CREATE TABLE `comment` (
   KEY `cBlog_id_idx` (`post_id`),
   CONSTRAINT `Cpost_id` FOREIGN KEY (`post_id`) REFERENCES `blogpost` (`blogpost_id`),
   CONSTRAINT `Cuser_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -113,6 +114,7 @@ CREATE TABLE `incoming_user` (
   `continent` varchar(250) NOT NULL,
   `country` varchar(250) NOT NULL,
   `region` varchar(250) DEFAULT NULL,
+  `info` text,
   PRIMARY KEY (`incoming_user_id`),
   CONSTRAINT `incoming_user_id` FOREIGN KEY (`incoming_user_id`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -163,6 +165,7 @@ CREATE TABLE `outgoing_user` (
   `continent` varchar(250) NOT NULL,
   `country` varchar(250) NOT NULL,
   `region` varchar(250) DEFAULT NULL,
+  `info` text,
   PRIMARY KEY (`outgoing_user_id`),
   CONSTRAINT `outgoing_user_id` FOREIGN KEY (`outgoing_user_id`) REFERENCES `user` (`user_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -174,7 +177,6 @@ CREATE TABLE `outgoing_user` (
 
 LOCK TABLES `outgoing_user` WRITE;
 /*!40000 ALTER TABLE `outgoing_user` DISABLE KEYS */;
-INSERT INTO `outgoing_user` VALUES (111306000,'NCCU','Asia','Taiwan','Taipei');
 /*!40000 ALTER TABLE `outgoing_user` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -254,6 +256,7 @@ CREATE TABLE `tagged_user` (
 
 LOCK TABLES `tagged_user` WRITE;
 /*!40000 ALTER TABLE `tagged_user` DISABLE KEYS */;
+INSERT INTO `tagged_user` VALUES (1,9);
 /*!40000 ALTER TABLE `tagged_user` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -281,7 +284,7 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (111306000,'王小明','123@gmail.com','pbkdf2:sha256:600000$h67cgWEF$86431714b3cd749e670eb781e8085468c64e37a94190e2c80edd1c5bec02f442',NULL);
+INSERT INTO `user` VALUES (1,'Xchange Official','dorayeh011093@gmail.com','pbkdf2:sha256:600000$1e2Kgps2$48b1d9accb5674b9010a3549a3aeccbe58d204c59ab972616c856589b8d45b18',NULL);
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -294,4 +297,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-05-26 14:43:29
+-- Dump completed on 2024-05-31  3:58:49

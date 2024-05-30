@@ -29,7 +29,7 @@
                 {% endfor %}
                 {% endif %}
                 {% endwith %}
-                <form method="POST" action="{{ url_for('register') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ url_for('register')}}" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
                     {{ form.csrf_token }}
                     {{ render_form(form) }}

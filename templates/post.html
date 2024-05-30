@@ -8,10 +8,10 @@
       <div class="col-md-10 col-lg-8 col-xl-7">
         <div class="post-heading">
           <h1>{{ post.title }}</h1>
-          <span class="meta">Posted by <a href="#">{{ post.author.user_name }}</a> on {{ post.upload_date }}</span>
+          <span class="meta">Posted by <a href="{{url_for('profile', user_id = post.author.user_id)}}">{{ post.author.user_name }}</a> on {{ post.upload_date }}</span>
           <span class="meta">with 
             {% for user in tagged_users %}
-            <a href="#">{{ user.name }}. </a>
+            <a href="{{url_for('profile', user_id = user.id)}}">{{ user.name }}. </a>
             {% endfor %}
           </span>
         </div>
@@ -33,13 +33,13 @@
 
               {% if is_author %}
               <div class="d-flex justify-content-end mb-4">
-                <a class="btn btn-primary float-right" href="#" onclick="confirmDeletePost('{{ post.title }}', '{{ post.author.user_name }}', '{{ url_for('delete_post', post_id=post.blogpost_id) }}')">Edit Post</a>
+                <a class="btn btn-primary float-right" href="{{url_for('edit_post', post_id=post.blogpost_id)}}">Edit Post</a>
               </div>
               <div class="d-flex justify-content-end mb-4">
                 <a class="btn btn-primary float-right" href="#" onclick="confirmDeletePost('{{ post.title }}', '{{ post.author.user_name }}', '{{ url_for('delete_post', post_id=post.blogpost_id) }}')">Delete Post</a>
               </div>
               {% endif %}
-
+              <a class="btn btn-primary float-right" href="{{url_for('like_post', post_id=post.blogpost_id)}}">{{ 'Unlike' if is_like else 'Like' }}</a>
               <!-- Display images fetched from Dropbox -->
               <div class="image-gallery">
                 <h2>Image Gallery</h2>
@@ -66,7 +66,7 @@
                   <ul class="commentList">
                     <li>
                       <div class="commentText">
-                        <span class="sub-text"><a href="#">{{comment.user_id}}</a> <a href="#">{{comment.user.user_name}}</a></span>
+                        <span class="sub-text"><a href="{{url_for('profile', user_id = comment.user.user_id)}}">{{comment.user_id}}</a> <a href="{{url_for('profile', user_id = comment.user.user_id)}}">{{comment.user.user_name}}</a></span>
                         {% if is_author or comment.user_id == current_user.get_id() %}
                         <a href="#" onclick="confirmDeleteComment('{{ comment.comment }}', '{{ comment.user.user_name }}', '{{ comment.comment_time }}', '{{ url_for('delete_comment', comment_id=comment.comment_id, post_id=post.blogpost_id) }}')">✘</a>
                         {% endif %}
@@ -135,6 +135,30 @@
   </div>
 </div>
 
+<!-- Flash Message Modal -->
+<div class="modal fade" id="flashModal" tabindex="-1" aria-labelledby="flashModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="flashModalLabel">Notification</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <p>{{ message }}</p>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   let deleteUrl = '';
 
@@ -156,8 +180,8 @@
     window.location.href = deleteUrl;
   });
 
-  // Automatically show flash messages in a modal
-  document.addEventListener('DOMContentLoaded', function () {
+    // Automatically show flash messages in a modal
+    document.addEventListener('DOMContentLoaded', function () {
     const flashMessages = JSON.parse('{{ get_flashed_messages()|tojson }}');
     if (flashMessages.length > 0) {
       const modalBodyContent = document.getElementById('modalBodyContent');

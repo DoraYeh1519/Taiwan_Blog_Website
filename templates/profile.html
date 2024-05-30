@@ -1,0 +1,95 @@
+{% from "bootstrap5/form.html" import render_form %}
+{% include "header.html" %}
+
+<!-- Page Header -->
+<header class="masthead" style="background-image: url('{{ url_for('static', filename='assets/img/profile_img/' + (user.profile_img_url if user.profile_img_url else 'login-bg.jpg'))}}')">
+  <div class="container position-relative px-4 px-lg-5">
+    <div class="row gx-4 gx-lg-5 justify-content-center">
+      <div class="col-md-10 col-lg-8 col-xl-7">
+        <div class="site-heading">
+          <h1>{{ user_student_type }}</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+<!-- Main Content -->
+<div class="container px-4 px-lg-5">
+    <div class="row gx-4 gx-lg-5">
+      <!-- Left Column (Post Content) -->
+      {% if is_profile_user and user_student_type != 'Xchange'%}
+      <div class="d-flex justify-content-end mb-4">
+        <a class="btn btn-primary float-right" href="{{url_for('edit_profile', user_id=user.user_id)}}">Edit Profile</a>
+      </div>
+      {% endif %}
+      <div class="col-md-8">
+        <article>
+          <div class="container">
+            <div class="row justify-content-center">
+              <div class="col-md-10 col-lg-12 col-xl-9">
+                <div class="user-info">
+                  {% if user_student_type  == 'International Student' %}
+                  <ul>
+                    <li><strong>Name:</strong> {{user.user_name}}</li>
+                    <li><strong>Email:</strong> {{ user.email }}</li>
+                    <li><strong>Studying:</strong> {{detailed_info.origin_school}}</li>
+                    <li><strong>From:</strong> {{ detailed_info.country }}, {{ detailed_info.region }}</li>
+                    <li><strong>Info:</strong> {{detailed_info.info}}</li>
+                  </ul>
+                  {% elif user_student_type  == 'Taiwanese Student' %}
+                  <ul>
+                    <li><strong>Name:</strong> {{user.user_name}}</li>
+                    <li><strong>Email:</strong> {{ user.email }}</li>
+                    <li><strong>Studying:</strong> {{detailed_info.exchanging_school}}</li>
+                    <li><strong>In:</strong> {{ detailed_info.country }}, {{ detailed_info.region }}</li>
+                    <li><strong>Info:</strong> {{detailed_info.info}}</li>
+                  </ul>
+                  {% else %}
+                    <ul>
+                      <li><strong>Name:</strong> {{user.user_name}}</li>
+                      <li><strong>Info:</strong> {{detailed_info.info}}</li>
+                    </ul>
+                  {% endif %}
+                  // To Frontend: Make a list of Posts and tagged_posts
+                </div>
+            </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</div>
+</div>
+{% include "footer.html" %}
+<div class="modal fade" id="flashModal" tabindex="-1" aria-labelledby="flashModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="flashModalLabel">Messages</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modalBodyContent">
+        <!-- Flash messages will be dynamically loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const flashMessages = JSON.parse('{{ get_flashed_messages()|tojson }}');
+    if (flashMessages.length > 0) {
+      const modalBodyContent = document.getElementById('modalBodyContent');
+      modalBodyContent.innerHTML = '';
+      flashMessages.forEach(message => {
+        const p = document.createElement('p');
+        p.textContent = message;
+        modalBodyContent.appendChild(p);
+      });
+      const flashModal = new bootstrap.Modal(document.getElementById('flashModal'));
+      flashModal.show();
+    }
+  });
+</script>
