@@ -41,26 +41,26 @@
         </div>
       </div>
       <script>
-        // $(document).ready(function() {
-        //     $('#continent').change(function() {
-        //         var region = $(this).val();
-        //         $.getJSON('/get_countries/' + region, function(data) {
-        //             var countrySelect = $('#country');
-        //             countrySelect.empty();
-        //             countrySelect.append('<option value="">Select Country</option>');
-        //             if (data.error) {
-        //                 countrySelect.append('<option value="">' + data.error + '</option>');
-        //             } else {
-        //                 data.sort(function(a, b) {
-        //                   return a.name.localeCompare(b.name);
-        //                 });
-        //                 $.each(data, function(index, country) {
-        //                     countrySelect.append('<option value="' + country.name + '">' + country.name + '</option>');
-        //                 });
-        //             }
-        //         });
-        //     });
-        // });
+        $(document).ready(function() {
+            $('#continent').change(function() {
+                var region = $(this).val();
+                $.getJSON('/get_countries/' + region, function(data) {
+                    var countrySelect = $('#country');
+                    countrySelect.empty();
+                    countrySelect.append('<option value="">Select Country</option>');
+                    if (data.error) {
+                        countrySelect.append('<option value="">' + data.error + '</option>');
+                    } else {
+                        data.sort(function(a, b) {
+                          return a.name.localeCompare(b.name);
+                        });
+                        $.each(data, function(index, country) {
+                            countrySelect.append('<option value="' + country.name + '">' + country.name + '</option>');
+                        });
+                    }
+                });
+            });
+        });
     </script>
     </main>
     

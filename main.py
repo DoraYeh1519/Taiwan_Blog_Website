@@ -35,7 +35,7 @@ login_manager.login_view = "login"
 
 # CONNECT TO DB
 username = "root" #Your username
-password = "EmeR2023" #Your password
+password = "EmeR1519" #Your password
 host = "localhost"
 port = 3306
 database = "dbms_project" #Your database name
@@ -77,9 +77,9 @@ class BlogPost(db.Model):
     author_id = db.Column(db.String(250),db.ForeignKey('user.user_id'), nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
     img_folder = db.Column(db.String(250), nullable=True)
-    comments = db.relationship("Comment",backref="post")
-    reacts = db.relationship("React", backref="post")
-    tagged = db.relationship("Tagged_user", backref="post")
+    comments = db.relationship("Comment",backref="post",cascade='all, delete')
+    reacts = db.relationship("React", backref="post",cascade='all, delete')
+    tagged = db.relationship("Tagged_user", backref="post",cascade='all, delete')
 
 class User(UserMixin, db.Model):
     def get_id(self):
@@ -90,10 +90,10 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(100), unique=True)
     profile_img_url = db.Column(db.String(1000))
     password = db.Column(db.String(100))
-    posts = db.relationship("BlogPost", backref="author")
-    comments = db.relationship("Comment",backref="user")
-    reacts = db.relationship("React", backref="user")
-    tagged = db.relationship("Tagged_user", backref="user")
+    posts = db.relationship("BlogPost", backref="author",cascade='all, delete')
+    comments = db.relationship("Comment",backref="user",cascade='all, delete')
+    reacts = db.relationship("React", backref="user",cascade='all, delete')
+    tagged = db.relationship("Tagged_user", backref="user",cascade='all, delete')
 
 
 class Comment(db.Model):
@@ -282,16 +282,16 @@ def outgoing():
 
     return render_template("register_outgoing.html", form=form, user_id=user_data['user_id'])
     
-# @app.route('/get_countries/<region>', methods=['GET'])
-# def get_countries(region):
-#     api_url = f'https://restcountries.com/v3.1/region/{region}'
-#     response = requests.get(api_url)
-#     if response.status_code == 200:
-#         countries = response.json()
-#         country_list = [{'name': country['name']['common']} for country in countries]
-#         return jsonify(country_list)
-#     else:
-#         return jsonify({'error': 'Failed to fetch countries'}), response.status_code
+@app.route('/get_countries/<region>', methods=['GET'])
+def get_countries(region):
+    api_url = f'https://restcountries.com/v3.1/region/{region}'
+    response = requests.get(api_url)
+    if response.status_code == 200:
+        countries = response.json()
+        country_list = [{'name': country['name']['common']} for country in countries]
+        return jsonify(country_list)
+    else:
+        return jsonify({'error': 'Failed to fetch countries'}), response.status_code
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
@@ -336,6 +336,9 @@ def get_all_posts():
 #TODO: check comment function
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
+    tagged_users = Tagged_user.query.filter_by(post_id=post_id).all()
+    tagged_users_data = [{"id": user.user_id, "name": user.user.user_name} for user in tagged_users]
+
     requested_post = db.get_or_404(BlogPost, post_id)
     form = CommentForm()
 
@@ -370,7 +373,8 @@ def show_post(post_id):
                 image_files.extend(filenames)
 
     return render_template("post.html", post=requested_post, form=form,
-                           all_comments=comments, image_files=image_files, post_id=str(post_id), is_author = is_post_author(post_id))
+                           all_comments=comments, image_files=image_files, post_id=str(post_id), is_author = is_post_author(post_id),
+                           tagged_users = tagged_users_data)
 
 
 @app.route("/new-post", methods=["GET", "POST"])
@@ -486,10 +490,10 @@ def edit_post(post_id):
 
     return render_template("make-post.html", form=edit_form, post=post, is_edit=True, tagged_users_data=tagged_users_data)
 
-#TODO: Delete post and comments, can check 'cascade' in the model
 @app.route("/delete/<int:post_id>")
-@admin_only
 def delete_post(post_id):
+    if not is_post_author(post_id):
+        return redirect(url_for("show_post",post_id))
     post_to_delete = db.get_or_404(BlogPost, post_id)
     db.session.delete(post_to_delete)
     db.session.commit()
@@ -497,7 +501,6 @@ def delete_post(post_id):
 
 
 @app.route("/delete/<int:comment_id>/<int:post_id>")
-@admin_only
 def delete_comment(comment_id, post_id):
     comment_to_delete = db.get_or_404(Comment, comment_id)
     db.session.delete(comment_to_delete)
