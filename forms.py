@@ -29,16 +29,16 @@ class RegisterForm(FlaskForm):
 class IncomingForm(FlaskForm):
     origin_school = StringField("What school are you from?", validators=[DataRequired()])
     continent = SelectField('What continent is it on?', choices=[('', 'Select Continent'),('asia', 'Asia'), ('europe', 'Europe'), ('americas', 'Americas'), ('africa', 'Africa'), ('oceania', 'Oceania')], validators=[DataRequired()],id='continent')
-    # country = StringField('What country is it in?', validators=[DataRequired()])
-    country = SelectField('What country is it in?', choices=[],validate_choice=False)
+    country = StringField('What country is it in?', validators=[DataRequired()])
+    # country = SelectField('What country is it in?', choices=[],validate_choice=False)
     region = StringField('What region is it in?')
     submit = SubmitField('Submit')
     
 class OutgoingForm(FlaskForm):
     exchanging_school = StringField("What school do you go to for exchange?", validators=[DataRequired()])
-    continent = SelectField('What continent is it on?', choices=[('', 'Select Continent'),('Asia', 'Asia'), ('Europe', 'Europe'), ('Americas', 'Americas'), ('Africa', 'Africa'), ('Oceania', 'Oceania')], validators=[DataRequired()],id='continent')
-    # country = StringField('What country is it in?', validators=[DataRequired()])
-    country = SelectField('What country is it in?', choices=[],validate_choice=False)
+    continent = SelectField('What continent is it on?', choices=[('', 'Select Continent'),('asia', 'Asia'), ('europe', 'Europe'), ('americas', 'Americas'), ('africa', 'Africa'), ('oceania', 'Oceania')], validators=[DataRequired()],id='continent')
+    country = StringField('What country is it in?', validators=[DataRequired()])
+    # country = SelectField('What country is it in?', choices=[],validate_choice=False)
     region = StringField('What region is it in?')
     submit = SubmitField('Submit')
 

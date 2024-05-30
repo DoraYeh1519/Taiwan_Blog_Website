@@ -1,11 +1,9 @@
-{% from "bootstrap5/form.html" import render_form %} {% block content %}
+{% from "bootstrap5/form.html" import render_form %}
+{% block content %}
 {% include "header.html" %}
 
 <!-- Page Header -->
-<header
-  class="masthead"
-  style="background-image: url('../static/assets/img/login-bg.jpg')"
->
+<header class="masthead" style="background-image: url('../static/assets/img/login-bg.jpg')">
   <div class="container position-relative px-4 px-lg-5">
     <div class="row gx-4 gx-lg-5 justify-content-center">
       <div class="col-md-10 col-lg-8 col-xl-7">
@@ -21,16 +19,51 @@
 <main class="mb-4">
   <div class="container">
     <div class="row">
-
       {% if error %}
-        <p class=error><strong>Error:</strong> {{ error }}
+        <p class="error"><strong>Error:</strong> {{ error }}</p>
       {% endif %}
       <div class="col-lg-8 col-md-10 mx-auto">
-
         {{ render_form(form) }}
       </div>
     </div>
   </div>
 </main>
 
-{% include "footer.html" %} {% endblock %}
+{% include "footer.html" %}
+{% endblock %}
+
+<!-- Modal for Flash Messages -->
+<div class="modal fade" id="flashModal" tabindex="-1" aria-labelledby="flashModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="flashModalLabel">Notification</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modalBodyContent">
+        <!-- Content will be dynamically loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Automatically show flash messages in a modal
+  document.addEventListener('DOMContentLoaded', function () {
+    const flashMessages = JSON.parse('{{ get_flashed_messages()|tojson }}');
+    if (flashMessages.length > 0) {
+      const modalBodyContent = document.getElementById('modalBodyContent');
+      modalBodyContent.innerHTML = '';
+      flashMessages.forEach(message => {
+        const p = document.createElement('p');
+        p.textContent = message;
+        modalBodyContent.appendChild(p);
+      });
+      const flashModal = new bootstrap.Modal(document.getElementById('flashModal'));
+      flashModal.show();
+    }
+  });
+</script>

@@ -31,13 +31,12 @@
             <div class="col-md-10 col-lg-12 col-xl-9">
               {{ post.body|safe }}
 
-
               {% if is_author %}
               <div class="d-flex justify-content-end mb-4">
-                <a class="btn btn-primary float-right" href="{{url_for('edit_post', post_id=post.blogpost_id)}}">Edit Post</a>
+                <a class="btn btn-primary float-right" href="#" onclick="confirmDeletePost('{{ post.title }}', '{{ post.author.user_name }}', '{{ url_for('delete_post', post_id=post.blogpost_id) }}')">Edit Post</a>
               </div>
               <div class="d-flex justify-content-end mb-4">
-                <a class="btn btn-primary float-right" href="{{url_for('delete_post', post_id=post.blogpost_id)}}">Delete Post</a>
+                <a class="btn btn-primary float-right" href="#" onclick="confirmDeletePost('{{ post.title }}', '{{ post.author.user_name }}', '{{ url_for('delete_post', post_id=post.blogpost_id) }}')">Delete Post</a>
               </div>
               {% endif %}
 
@@ -62,18 +61,14 @@
               <div class="comment">
                 {{ render_form(form) }}
 
-
                 {% for comment in all_comments %}
-                  {% if comment.post_id == post.blogpost_id: %}
+                  {% if comment.post_id == post.blogpost_id %}
                   <ul class="commentList">
                     <li>
-                      <!-- <div class="commenterImage">
-                        <img src="{{ url_for('static', filename='assets/img/profile_img/' + comment.img_url) }}" alt="Profile Image">
-                      </div> -->
                       <div class="commentText">
-                        <span class="sub-text">{{comment.user_id}}</span>
-                        {% if is_author or comment.user_id ==  current_user.get_id(): %}
-                        <a href="{{url_for('delete_comment', comment_id=comment.comment_id, post_id=post.blogpost_id) }}">✘</a>
+                        <span class="sub-text"><a href="#">{{comment.user_id}}</a> <a href="#">{{comment.user.user_name}}</a></span>
+                        {% if is_author or comment.user_id == current_user.get_id() %}
+                        <a href="#" onclick="confirmDeleteComment('{{ comment.comment }}', '{{ comment.user.user_name }}', '{{ comment.comment_time }}', '{{ url_for('delete_comment', comment_id=comment.comment_id, post_id=post.blogpost_id) }}')">✘</a>
                         {% endif %}
                         <p>{{comment.comment}}</p>
                         <span class="date sub-text">{{comment.comment_time}}</span>
@@ -95,8 +90,8 @@
         <div>
           <h4 class="fst-italic">Recent posts</h4>
           {% for other_post in all_posts %}
-            {% if other_post.blogpost_id != post.blogpost_id: %}
-              {% if other_post.blogpost_id < 4: %}
+            {% if other_post.blogpost_id != post.blogpost_id %}
+              {% if other_post.blogpost_id < 4 %}
               <ul class="list-unstyled">
                 <li>
                     <a class="d-flex flex-column flex-lg-row gap-3 align-items-start align-items-lg-center py-3 link-body-emphasis text-decoration-none border-top"
@@ -120,3 +115,60 @@
 </div>
 
 {% include "footer.html" %}
+
+<!-- Bootstrap Modal for Confirmation -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmationModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modalBodyContent">
+        <!-- Content will be dynamically loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let deleteUrl = '';
+
+  function confirmDeletePost(title, author, url) {
+    deleteUrl = url;
+    document.getElementById('modalBodyContent').innerText = `Are you sure you want to delete post: "${title}", Author：${author}?`;
+    const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    confirmationModal.show();
+  }
+
+  function confirmDeleteComment(comment, userName, commentTime, url) {
+    deleteUrl = url;
+    document.getElementById('modalBodyContent').innerText = `Are you sure you want to delete comment: "${comment}" by ${userName} in ${commentTime}?`;
+    const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    confirmationModal.show();
+  }
+
+  document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+    window.location.href = deleteUrl;
+  });
+
+  // Automatically show flash messages in a modal
+  document.addEventListener('DOMContentLoaded', function () {
+    const flashMessages = JSON.parse('{{ get_flashed_messages()|tojson }}');
+    if (flashMessages.length > 0) {
+      const modalBodyContent = document.getElementById('modalBodyContent');
+      modalBodyContent.innerHTML = '';
+      flashMessages.forEach(message => {
+        const p = document.createElement('p');
+        p.textContent = message;
+        modalBodyContent.appendChild(p);
+      });
+      const flashModal = new bootstrap.Modal(document.getElementById('flashModal'));
+      flashModal.show();
+    }
+  });
+</script>

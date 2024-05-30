@@ -18,6 +18,7 @@ import zipfile
 import os
 import requests
 import json
+from restcountries import RestCountryApiV2 as rapi
 
 # flask setup
 app = Flask(__name__)
@@ -35,7 +36,7 @@ login_manager.login_view = "login"
 
 # CONNECT TO DB
 username = "root" #Your username
-password = "EmeR1519" #Your password
+password = "EmeR2023" #Your password
 host = "localhost"
 port = 3306
 database = "dbms_project" #Your database name
@@ -237,7 +238,7 @@ def incoming():
                 db.session.rollback()
                 flash("An error occurred: " + str(e), "danger")
 
-    return render_template("register_incoming.html", form=form, user_id=user_data['user_id'])
+    return render_template("register_stage2.html", is_out=False, form=form, user_id=user_data['user_id'])
 
 @app.route('/register/outgoing', methods=["GET", "POST"])
 def outgoing():
@@ -280,18 +281,16 @@ def outgoing():
                 db.session.rollback()
                 flash("An error occurred: " + str(e), "danger")
 
-    return render_template("register_outgoing.html", form=form, user_id=user_data['user_id'])
+    return render_template("register_stage2.html", is_out=True, form=form, user_id=user_data['user_id'])
     
-@app.route('/get_countries/<region>', methods=['GET'])
-def get_countries(region):
-    api_url = f'https://restcountries.com/v3.1/region/{region}'
-    response = requests.get(api_url)
-    if response.status_code == 200:
-        countries = response.json()
-        country_list = [{'name': country['name']['common']} for country in countries]
-        return jsonify(country_list)
-    else:
-        return jsonify({'error': 'Failed to fetch countries'}), response.status_code
+# @app.route('/get_countries/<region>', methods=['GET'])
+# def get_countries(region):
+#     try:
+#         countries = rapi.get_countries_by_region(region)
+#         country_list = [{'name': country['name']} for country in countries]
+#         return jsonify(country_list)
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
@@ -310,7 +309,7 @@ def login():
             error = 'Wrong password, please try again'
         else:
             login_user(user)
-            flash('You were successfully logged in')
+            flash('login successfully! Welocme, '+user.user_name)
             return redirect(url_for('get_all_posts'))
     print(error)
     return render_template("login.html", error=error, form=form)
@@ -319,10 +318,15 @@ def login():
 @app.route('/logout')
 def logout():
     logout_user()
+    flash('logout successfully')
     return redirect(url_for('get_all_posts'))
 
 @app.route('/')
 def get_all_posts():
+    if not current_user.is_authenticated:
+        isLogin = False
+    else:
+        isLogin = True
     result = db.session.execute(db.select(BlogPost).order_by(desc(BlogPost.views)))
     popular_posts = result.scalars().all()
     result2 = db.session.execute(db.select(BlogPost).filter_by(author_id = 1))
@@ -331,7 +335,7 @@ def get_all_posts():
     if len(popular_posts) == 0:
         # If no posts are available, render a template indicating that there are no posts.
         return render_template("no_posts.html")
-    return render_template("index.html", popular_posts=popular_posts, exchange_informations=exchange_informations)
+    return render_template("index.html", isLogin=isLogin, popular_posts=popular_posts, exchange_informations=exchange_informations)
 
 #TODO: check comment function
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
@@ -344,7 +348,8 @@ def show_post(post_id):
 
     if form.validate_on_submit():
         if not current_user.is_authenticated:
-            return app.login_manager.unauthorized()
+            flash("You need to login to comment on a post.")
+            return redirect(url_for("login"))
         else:
             new_comment = Comment(
                 comment=form.data['comment'],
@@ -435,7 +440,8 @@ def add_new_post():
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
 def edit_post(post_id):
     if not is_post_author(post_id):
-        return redirect(url_for("show_post",post_id))
+        flash("You are not the author of this post.", "danger")
+        return redirect(url_for("show_post",post_id=post_id))
     post = db.get_or_404(BlogPost, post_id)
     edit_form = CreatePostForm(obj=post)
     
@@ -493,7 +499,8 @@ def edit_post(post_id):
 @app.route("/delete/<int:post_id>")
 def delete_post(post_id):
     if not is_post_author(post_id):
-        return redirect(url_for("show_post",post_id))
+        flash("You are not the author of this post.", "danger")
+        return redirect(url_for("show_post",post_id=post_id))
     post_to_delete = db.get_or_404(BlogPost, post_id)
     db.session.delete(post_to_delete)
     db.session.commit()
