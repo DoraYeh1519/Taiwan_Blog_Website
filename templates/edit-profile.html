@@ -1,5 +1,5 @@
-{% from "bootstrap5/form.html" import render_form %}
 {% block content %}
+{% from "bootstrap5/form.html" import render_form %}
 {% include "header.html" %}
 
 <!-- Page Header -->
@@ -61,12 +61,18 @@
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
     $(document).ready(function() {
+        var passwordVerified = false;  // Flag to check if password is verified
+
         $('#register-form').submit(function(event) {
-            event.preventDefault();  // Prevent the form from submitting
-            var passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
-            passwordModal.show();  // Show the password modal
+            if (!passwordVerified) {
+                event.preventDefault();  // Prevent the form from submitting if password is not verified
+                var passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+                passwordModal.show();  // Show the password modal
+            }
         });
 
         $('#submit-password-btn').click(function() {
@@ -86,7 +92,9 @@
                 contentType: 'application/json',
                 success: function(response) {
                     if (response.status === 'correct') {
-                        window.location.href = '/profile/{{ user_id }}';  // Redirect to profile page or another success page
+                        passwordVerified = true;  // Set the flag to true
+                        $('#passwordModal').modal('hide');  // Hide the modal
+                        $('#submit').click();  // Resubmit the form
                     } else {
                         $('#error-message').text('Wrong password');
                     }
@@ -95,6 +103,4 @@
         });
     });
 </script>
-
-{% include "footer.html" %}
 {% endblock %}

@@ -24,7 +24,8 @@ from restcountries import RestCountryApiV2 as rapi
 app = Flask(__name__)
 SECRET_KEY = os.urandom(32)
 app.config['SECRET_KEY'] = SECRET_KEY
-app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER')
+UPLOAD_FOLDER = './static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # html setup
 ckeditor = CKEditor(app)

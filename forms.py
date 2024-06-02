@@ -34,7 +34,7 @@ class IncomingForm(FlaskForm):
     # country = SelectField('What country is it in?', choices=[],validate_choice=False)
     region = StringField('What region are you from?')
     info = CKEditorField('Tell us about yourself(eg. hobbies, interests, etc.) ')
-    submit = SubmitField('Submit')
+    submit = SubmitField('Submit',id='submit')
     
 class OutgoingForm(FlaskForm):
     exchanging_school = StringField("What school do you go to for exchange? *", validators=[DataRequired()])
@@ -43,7 +43,7 @@ class OutgoingForm(FlaskForm):
     # country = SelectField('What country is it in?', choices=[],validate_choice=False)
     region = StringField('What region is it in?')
     info = CKEditorField('Tell us about yourself(eg. hobbies, interests, etc.) ')
-    submit = SubmitField('Submit')
+    submit = SubmitField('Submit',id='submit')
 
 class LoginForm(FlaskForm):
     id = StringField("Your User ID", validators=[DataRequired()])
